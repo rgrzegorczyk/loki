@@ -86,3 +86,9 @@ Run the LOKI application again, verify the settings, and click `Complete setup`.
 ![Complete setup](doc/images/image-5.png)
 
 For full configuration details, see [LOKI Installation and Configuration: No More Code Conflicts in the Shared Oracle Dev Database](https://rafal.hashnode.dev/loki-installation-and-configuration-no-more-code-conflicts-in-the-shared-oracle-dev-database).
+
+
+## ROADMAP TO DO
+
+- Add new page Administration - Settings - to manage LOKI settings (e.g. locks retention hours, etc.)
+
