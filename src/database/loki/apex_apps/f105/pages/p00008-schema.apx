@@ -107,7 +107,7 @@ page 8 (
                   l_content clob;
                 begin
                   l_content := '<pre><code>
-                create or replace trigger loki_before_ddl_tgr before ddl on #SCHEMA_NAME#.schema
+                create or replace trigger #SCHEMA_NAME#.loki_before_ddl_tgr before ddl on #SCHEMA_NAME#.schema
                 begin
                   execute immediate ''begin #LOKI_SCHEMA_NAME#.loki_lock.handle_ddl_event(); end;'';
                 end loki_before_ddl_tgr;
