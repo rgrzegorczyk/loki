@@ -14,9 +14,16 @@ begin
     user
   );
 
-  l_apex_username := sys_context(
-    'APEX$SESSION',
-    'APP_USER'
+  l_apex_username := coalesce(
+    sys_context(
+      'APEX$SESSION',
+      'APP_USER'
+    ),
+    sys_context(
+      'USERENV',
+      'PROXY_USER'
+    ),
+    user
   );
 
   insert into loki_users (
@@ -31,8 +38,8 @@ begin
     l_fullname,
     l_apex_username,
     l_apex_username,
-    loki_util.c_yes,
-    loki_util.c_yes,
+    'Y',
+    'Y',
     'UTC',
     'YYYY/MM/DD HH24:MI:SS'
   );

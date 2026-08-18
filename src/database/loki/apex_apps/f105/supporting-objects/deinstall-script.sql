@@ -1,10 +1,36 @@
 begin
-  dbms_scheduler.drop_job(job_name => 'LOKI_DDL_LOGS_CLEAR', force => true);
+  begin
+    dbms_scheduler.drop_job(job_name => 'LOKI_DDL_LOGS_CLEAR', force => true);
+  exception
+    when others then
+      if sqlcode != -27475 then
+        raise;
+      end if;
+  end;
 end;
 /
 
 begin
-  dbms_scheduler.drop_job(job_name => 'LOKI_LOCKS_LOGS_CLEAR', force => true);
+  begin
+    dbms_scheduler.drop_job(job_name => 'LOKI_LOCKS_LOGS_CLEAR', force => true);
+  exception
+    when others then
+      if sqlcode != -27475 then
+        raise;
+      end if;
+  end;
+end;
+/
+
+begin
+  begin
+    dbms_scheduler.drop_job(job_name => 'LOKI_LOCKS_CLEAR', force => true);
+  exception
+    when others then
+      if sqlcode != -27475 then
+        raise;
+      end if;
+  end;
 end;
 /
 

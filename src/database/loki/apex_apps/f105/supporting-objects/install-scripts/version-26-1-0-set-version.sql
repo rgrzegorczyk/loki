@@ -1,4 +1,4 @@
-create or replace function loki.check_version (
+create or replace function check_version (
     i_version in varchar2
 ) return boolean is
     c_curr_version        constant varchar2(6) := '26.1.0';
@@ -32,6 +32,3 @@ begin
     return false;
 end check_version;
 /
-
-
--- sqlcl_snapshot {"hash":"56ef549ec5094d6d189927138b837fba25ee7cf7","type":"FUNCTION","name":"CHECK_VERSION","schemaName":"LOKI","sxml":""}

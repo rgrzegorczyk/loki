@@ -187,3 +187,64 @@ installScript "Version 24.1.1: Util Package" (
     }
 )
 
+installScript "Version 26.1.0: Lock Package" (
+    execution {
+        sequence: 230
+    }
+    script {
+        contentFile: version-26-1-0-lock-package.sql
+    }
+    serverSideCondition {
+        type: expression
+        plsqlExpression: check_version(i_version => '26.1.0')
+    }
+)
+
+installScript "Version 26.1.0: Locks Clear Job" (
+    execution {
+        sequence: 240
+    }
+    script {
+        contentFile: version-26-1-0-locks-clear-job.sql
+    }
+    serverSideCondition {
+        type: expression
+        plsqlExpression: check_version(i_version => '26.1.0')
+    }
+)
+
+installScript "Version 26.1.0: Locks Retention Hours Setting" (
+    execution {
+        sequence: 235
+    }
+    script {
+        contentFile: version-26-1-0-locks-retention-hours-setting.sql
+    }
+    serverSideCondition {
+        type: expression
+        plsqlExpression: check_version(i_version => '26.1.0')
+    }
+)
+
+installScript "Version 26.1.0: Set Version" (
+    execution {
+        sequence: 250
+    }
+    script {
+        contentFile: version-26-1-0-set-version.sql
+    }
+)
+
+installScript "Version 26.1.0: Util Package" (
+    execution {
+        sequence: 220
+    }
+    script {
+        contentFile: version-26-1-0-util-package.sql
+    }
+    serverSideCondition {
+        type: expression
+        plsqlExpression: check_version(i_version => '26.1.0')
+    }
+)
+

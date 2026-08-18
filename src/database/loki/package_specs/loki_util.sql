@@ -9,6 +9,7 @@ create or replace package loki.loki_util as
     type r_settings_type is record (
             locks_log_retention_months pls_integer,
             ddl_log_retention_months   pls_integer,
+            locks_retention_hours      pls_integer,
             first_run                  varchar2(1)
     );
 
@@ -44,4 +45,4 @@ end;
 /
 
 
--- sqlcl_snapshot {"hash":"e281fea58050e90e991f6d626879ba515ce9de6b","type":"PACKAGE_SPEC","name":"LOKI_UTIL","schemaName":"LOKI","sxml":""}
+-- sqlcl_snapshot {"hash":"7a52690b9d7ebdaf956c63ab0c53591d6721613b","type":"PACKAGE_SPEC","name":"LOKI_UTIL","schemaName":"LOKI","sxml":""}

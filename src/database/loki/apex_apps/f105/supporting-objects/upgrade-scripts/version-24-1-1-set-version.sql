@@ -5,13 +5,9 @@ create or replace function check_version (
   l_cur_version_numbers apex_t_number;
   l_inc_version_numbers apex_t_number;
 begin
-  loki_util.assert(
-    i_condition => regexp_like(
-      i_version,
-      '^\d+\.\d+\.\d+$'
-    ),
-    i_message   => 'LOKI: Invalid version format'
-  );
+  if not regexp_like(i_version, '^\d+\.\d+\.\d+$') then
+    raise_application_error(-20000, 'LOKI: Invalid version format');
+  end if;
 
   l_cur_version_numbers := apex_string.split_numbers(
     c_curr_version,

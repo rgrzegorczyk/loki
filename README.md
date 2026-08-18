@@ -1,3 +1,11 @@
+# Important
+
+LOKI app was originaly created by Oracle and it's older version is available here -> 
+https://github.com/oracle/apex/tree/24.1/utility-apps/loki
+
+In this repository I upgraded it, moved to APEXlang, and added some features I was missing.
+
+
 # LOKI
 
 If you want to learn about LOKI by reading my blog, see [Who Changed My Code? No More Code Conflicts in Shared Oracle DB Dev Environments (LOKI)](https://rafal.hashnode.dev/who-changed-my-code-no-more-code-conflicts-in-shared-oracle-db-dev-environments-loki).
@@ -32,10 +40,7 @@ end;
 
 ### 3. Install LOKI APEX App with Supporting Objects
 
-Install one of the following:
-
-1. APEX_LANG version from `src/database/loki/apex_apps/f105/application.apx`
-2. Import via APEX Builder from `src/database/loki/apex_apps/f105/f105.sql`
+Run script install.sql (adjust workspace name if needed):
 
 ### 4. Configure LOKI
 

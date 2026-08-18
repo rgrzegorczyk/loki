@@ -44,8 +44,12 @@ create or replace package loki.loki_lock as
         i_log_retention_months pls_integer
     );
 
+    procedure clear_locks (
+        i_retention_hours pls_integer
+    );
+
 end loki_lock;
 /
 
 
--- sqlcl_snapshot {"hash":"765890bbeda628aa40f322598f9867b0c850ee43","type":"PACKAGE_SPEC","name":"LOKI_LOCK","schemaName":"LOKI","sxml":""}
+-- sqlcl_snapshot {"hash":"a40c29c4630a882675255544b9ca65fc6263c3c5","type":"PACKAGE_SPEC","name":"LOKI_LOCK","schemaName":"LOKI","sxml":""}
