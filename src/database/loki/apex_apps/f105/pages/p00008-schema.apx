@@ -1,0 +1,327 @@
+page 8 (
+    name: Schema
+    alias: SCHEMA
+    title: Schema
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        chained: false
+        resizable: false
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    css {
+        inline:
+            ```css
+            #loki_schema_code_heading {
+              margin-left: -15px;
+            }
+            
+            pre code {
+              display: block;
+              background: #f5f5f5;
+              padding: 0 1rem 1rem 1rem;
+              border-radius: 5px;
+              overflow-x: auto;
+              white-space: pre;
+            }
+            ```
+    }
+    security {
+        authorizationScheme: @administration-rights
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: dialogFooter
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            outputAs: text
+        }
+    )
+
+    region grant-code (
+        name: GRANT_CODE
+        title: Grant Code
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                  l_content clob;
+                begin
+                  l_content := replace('<pre><code>
+                grant execute on #LOKI_SCHEMA_NAME#.loki_lock to #SCHEMA_NAME#;
+                </code></pre>', '#LOKI_SCHEMA_NAME#', :P8_LOKI_SCHEMA_NAME);
+                  l_content := replace(l_content, '#SCHEMA_NAME#', :P8_SCHEMA_NAME);
+                  return l_content;
+                end;
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--textContent
+                t-Region--scrollBody
+            ]
+        }
+        advanced {
+            htmlDomId: loki__schema-code
+        }
+        serverSideCondition {
+            type: expression
+            plsqlExpression: :P8_LOKI_SCHEMA_NAME != :P8_SCHEMA_NAME
+        }
+    )
+
+    region trigger-code (
+        name: TRIGGER_CODE
+        title: Trigger Code
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                  l_content clob;
+                begin
+                  l_content := '<pre><code>
+                create or replace trigger loki_before_ddl_tgr before ddl on #SCHEMA_NAME#.schema
+                begin
+                  execute immediate ''begin #LOKI_SCHEMA_NAME#.loki_lock.handle_ddl_event(); end;'';
+                end loki_before_ddl_tgr;
+                </code></pre>';
+                
+                  l_content := replace(l_content, '#SCHEMA_NAME#', :P8_SCHEMA_NAME);
+                  l_content := replace(l_content, '#LOKI_SCHEMA_NAME#', :P8_LOKI_SCHEMA_NAME);
+                  return l_content;
+                 end;
+                ```
+        }
+        layout {
+            sequence: 40
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--textContent
+                t-Region--scrollBody
+            ]
+        }
+        advanced {
+            htmlDomId: loki__trigger-code
+        }
+    )
+
+    pageItem P8_LOKI_SCHEMA_NAME (
+        type: hidden
+        layout {
+            sequence: 20
+            slot: contentBody
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select owner
+                  from apex_applications
+                 where application_id = :app_id
+                ```
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P8_SCHEMA_NAME (
+        type: textField
+        label {
+            label: Schema Name
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: close
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button copycodetoclipboard (
+        buttonName: CopyCodeToClipboard
+        label: Copy to Clipboard
+        layout {
+            sequence: 10
+            region: @trigger-code
+            slot: copy
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button copygrantstoclipboard (
+        buttonName: CopyGrantsToClipboard
+        label: Copy to Clipboard
+        layout {
+            sequence: 10
+            region: @grant-code
+            slot: copy
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action native-dialog-cancel (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction copy-code-to-clipboard (
+        name: Copy Code to Clipboard
+        execution {
+            sequence: 30
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @copycodetoclipboard
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    const el = document.querySelector('#loki__trigger-code code');
+                    navigator.clipboard.writeText(el.textContent.trim());
+                    apex.message.showPageSuccess('Copied to clipboad');
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction copy-grants-to-clipboard (
+        name: Copy Grants to Clipboard
+        execution {
+            sequence: 20
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @copygrantstoclipboard
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    const el = document.querySelector('#loki__schema-code code');
+                    navigator.clipboard.writeText(el.textContent.trim());
+                    apex.message.showPageSuccess('Copied to clipboad');
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 50
+        }
+        advanced {
+            executionMappingIdentifier: 17343029940265147
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: CREATE,SAVE,DELETE
+        }
+    )
+
+)
+

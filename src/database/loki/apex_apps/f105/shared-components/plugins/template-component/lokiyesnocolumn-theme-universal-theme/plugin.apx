@@ -1,0 +1,17 @@
+plugin lokiYesNoColumn (
+    name: Loki Yes/No Column
+    staticId: THEME_42$LOKI_YES_NO_COLUMN
+    theme: @universal-theme
+    templateComponent {
+        partial:
+            ```html
+            <span role="figure" class="{case SUCCESS/}
+            {when Y/}
+            fa fa-check-circle u-success-text{otherwise/}
+            fa fa-times-circle u-danger-text{endcase/}" title="{case SUCCESS/}
+            {when Y/}Yes{otherwise/}No{endcase/}" aria-label="{case SUCCESS/}
+            {when Y/}Yes{otherwise/}No{endcase/}"></span>
+            ```
+    }
+)
+

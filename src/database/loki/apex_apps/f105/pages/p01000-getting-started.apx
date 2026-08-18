@@ -1,0 +1,497 @@
+page 1000 (
+    name: Getting Started
+    alias: GETTING-STARTED
+    title: Getting Started
+    appearance {
+        pageTemplate: @/minimal-no-navigation
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    css {
+        inline:
+            ```css
+            .step-container { max-width: 768px; margin: 1.6rem auto }
+            
+            .step-container .t-HeroRegion:not(.t-HeroRegion--featured) .t-HeroRegion-wrap { padding: 0; }
+            
+            .t-Alert--info .t-Alert-icon { vertical-align: top }
+            
+            .t-Alert--horizontal .t-Alert-title { line-height: 2.8rem }
+            
+            .content-well { background: rgba(0, 0, 0, .05); border-radius: 2px; padding: 1.6rem }
+            
+            .users-table .t-Report-report thead { display: none }
+            
+            .users-table .t-Report-cell { padding: 0.8rem 0; font-size: 1.4rem; line-height: 1.5 }
+            
+            .cta-button {padding: 16px 32px; font-size: 16px;}
+            
+            .t-Card-info {
+              margin-top: 0;
+            }
+            
+            .t-Card-desc {
+              display: none;
+            }
+            
+            .t-Card-title {
+              font-weight: 400;
+            }
+            
+            .apex-item-yes-no {white-space:pre;}
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region add-schema-triggers (
+        name: Add Schema Triggers
+        type: staticContent
+        layout {
+            sequence: 50
+            slot: body
+        }
+        appearance {
+            template: @/alert
+            templateOptions: [
+                #DEFAULT#
+                t-Alert--horizontal
+                t-Alert--customIcons
+                t-Alert--info
+            ]
+            cssClasses: step-container
+            icon: fa-number-2
+        }
+    )
+
+    region add-users (
+        name: Add Users
+        type: staticContent
+        layout {
+            sequence: 40
+            slot: body
+        }
+        appearance {
+            template: @/alert
+            templateOptions: [
+                #DEFAULT#
+                t-Alert--horizontal
+                t-Alert--customIcons
+                t-Alert--info
+            ]
+            cssClasses: step-container
+            icon: fa-number-1
+        }
+        advanced {
+            regionDisplaySelector: true
+        }
+    )
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 60
+            slot: body
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: [
+                #DEFAULT#
+                t-ButtonRegion--noUI
+            ]
+            cssClasses: step-container
+        }
+    )
+
+    region introduction-wizard (
+        name: Introduction Wizard
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+            cssClasses: step-container
+        }
+    )
+
+    region schemas (
+        name: Schemas
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select card_link,
+                       card_title,
+                       coalesce(card_subtext_1, '') || 
+                       case 
+                         when card_subtext_1 is not null and card_subtext_2 is not null then ', ' 
+                         else '' 
+                       end || 
+                       coalesce(card_subtext_2, '') as card_subtext
+                  from (
+                    select apex_page.get_url(
+                         p_page => 'schema',
+                         p_items => 'p8_schema_name',
+                         p_values => aws.schema
+                       ) as card_link,
+                       case when aa.owner is null
+                         then null
+                         else 'Loki Owner'
+                       end as card_subtext_1,
+                       case when tp.grantee is null and aa.owner is null then 'Not granted'
+                         else 'Granted'
+                       end as card_subtext_2,
+                       rownum,
+                       aws.schema as card_title
+                  from (select distinct schema from apex_workspace_schemas) aws
+                  left join apex_applications aa on aws.schema = aa.owner
+                       and aa.application_id = :app_id
+                  left join table_privileges tp on aws.schema = tp.grantee
+                       and tp.table_name = 'LOKI_LOCK'
+                       and tp.grantor = (
+                         select owner
+                           from apex_applications
+                          where application_id = :app_id
+                       )
+                  );
+                ```
+        }
+        layout {
+            sequence: 10
+            parentRegion: @add-schema-triggers
+            slot: subRegions
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            regionDisplaySelector: true
+        }
+        componentAppearance {
+            template: @/cards
+            templateOptions: [
+                #DEFAULT#
+                t-Cards--compact
+                t-Cards--3cols
+                t-Cards--iconsRounded
+                t-Cards--animColorFill
+            ]
+        }
+
+        column CARD_LINK (
+            reportColumnQueryId: 1
+            derivedColumn: N
+            heading {
+                heading: Card Link
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CARD_SUBTEXT (
+            reportColumnQueryId: 3
+            derivedColumn: N
+            heading {
+                heading: Card Subtext
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column CARD_TITLE (
+            reportColumnQueryId: 2
+            derivedColumn: N
+            heading {
+                heading: Card Title
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+    )
+
+    region users (
+        name: Users
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select apex_page.get_url(
+                         p_page => 'user',
+                         p_items => 'p10_user_id',
+                         p_values => '' || user_id
+                       ) as card_link,
+                       case admin_yn 
+                         when 'Y' then 'Administrator'
+                         else 'User'
+                       end as card_subtext,
+                       case admin_yn
+                         when 'Y' then 'fa-user-wrench' 
+                         else 'fa-user'
+                       end as card_icon,
+                       case admin_yn 
+                         when 'Y' then 'u-color-15' 
+                         else 'u-color-1'
+                       end as card_color,
+                       rownum,
+                       full_name as card_title,
+                       null as card_text
+                  from loki_users
+                ```
+        }
+        layout {
+            sequence: 10
+            parentRegion: @add-users
+            slot: subRegions
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        componentAppearance {
+            template: @/cards
+            templateOptions: [
+                #DEFAULT#
+                t-Cards--compact
+                t-Cards--displayIcons
+                t-Cards--3cols
+                t-Cards--iconsRounded
+                t-Cards--animColorFill
+            ]
+            cssClasses: users-table
+        }
+
+        column CARD_COLOR (
+            reportColumnQueryId: 4
+            derivedColumn: N
+            heading {
+                heading: Card Color
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+        column CARD_ICON (
+            reportColumnQueryId: 3
+            derivedColumn: N
+            heading {
+                heading: Card Icon
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column CARD_LINK (
+            reportColumnQueryId: 1
+            derivedColumn: N
+            heading {
+                heading: Card Link
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        column CARD_SUBTEXT (
+            reportColumnQueryId: 2
+            derivedColumn: N
+            heading {
+                heading: Card Subtext
+            }
+            layout {
+                sequence: 30
+            }
+        )
+
+        column CARD_TEXT (
+            reportColumnQueryId: 7
+            derivedColumn: N
+            heading {
+                heading: Card Text
+            }
+            layout {
+                sequence: 80
+            }
+        )
+
+        column CARD_TITLE (
+            reportColumnQueryId: 6
+            derivedColumn: N
+            heading {
+                heading: Card Title
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column ROWNUM (
+            reportColumnQueryId: 5
+            derivedColumn: N
+            heading {
+                heading: Rownum
+                alignment: end
+            }
+            layout {
+                sequence: 60
+                columnAlignment: end
+            }
+        )
+
+    )
+
+    region welcome-to-app-name (
+        name: Welcome to &APP_NAME.
+        type: staticContent
+        source {
+            htmlCode: <p>With Loki, developers can seamlessly collaborate in the same schema by locking database objects, ensuring that only one person modifies an object at a time. Whether through automatic or manual locks, Loki helps streamline your workflow and keep your changes secure until they're ready to merge.</p>
+        }
+        layout {
+            sequence: 10
+            parentRegion: @introduction-wizard
+            slot: subRegions
+        }
+        appearance {
+            template: @/hero
+            templateOptions: t-HeroRegion--noPadding
+        }
+        image {
+            fileUrl: #APP_FILES#icons/app-icon-192.png
+        }
+    )
+
+    button add-user (
+        buttonName: ADD_USER
+        label: Add User
+        layout {
+            sequence: 10
+            region: @users
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-user-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 10
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            customAttributes: style="margin-top:10px;"
+        }
+    )
+
+    button complete (
+        buttonName: COMPLETE
+        label: Complete Setup
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: change
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--large
+                t-Button--iconRight
+            ]
+            cssClasses: cta-button
+            icon: fa-check-circle
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    dynamicAction refresh-on-edit (
+        name: Refresh on edit
+        execution {
+            sequence: 10
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @users
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @users
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process process-page (
+        name: Process Page
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                declare
+                  l_settings loki_util.r_settings_type;
+                begin
+                  l_settings := loki_util.get_settings();
+                  l_settings.first_run := loki_util.c_no;
+                  loki_util.set_settings(i_settings => l_settings);
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        advanced {
+            executionMappingIdentifier: 154580154458059025
+        }
+    )
+
+    branch (
+        name: Go to Locks
+        execution {
+            sequence: 10
+        }
+        behavior {
+            target: {
+                page: 1
+            }
+        }
+        serverSideCondition {
+            whenButtonPressed: @complete
+        }
+    )
+
+)
+

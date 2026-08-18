@@ -1,0 +1,76 @@
+breadcrumb breadcrumb (
+    name: Breadcrumb
+
+    entry administration (
+        name: Administration
+        pageNumber: 6
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 6
+            }
+        }
+    )
+
+    entry ddl-logs (
+        name: DDL Logs
+        pageNumber: 3
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 3
+            }
+        }
+    )
+
+    entry home (
+        name: Home
+        pageNumber: 1
+        execution {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 1
+            }
+        }
+    )
+
+    entry schemas (
+        name: Schemas
+        pageNumber: 7
+        execution {
+            sequence: 10
+        }
+        appearance {
+            parentEntry: @administration
+        }
+        link {
+            target: {
+                page: 7
+            }
+        }
+    )
+
+    entry users (
+        name: Users
+        pageNumber: 9
+        execution {
+            sequence: 10
+        }
+        appearance {
+            parentEntry: @administration
+        }
+        link {
+            target: {
+                page: 9
+            }
+        }
+    )
+
+)
+

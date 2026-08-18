@@ -1,0 +1,12 @@
+customAttribute SUCCESS (
+    apexlangName: success
+    attribute: 1
+    name: Success
+    validation {
+        required: true
+    }
+    appearance {
+        sequence: 10
+    }
+)
+

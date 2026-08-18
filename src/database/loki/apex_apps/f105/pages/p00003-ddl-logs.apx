@@ -1,0 +1,360 @@
+page 3 (
+    name: DDL Logs
+    alias: DDL-LOGS
+    title: &APP_NAME. - DDL Logs
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: [
+                #DEFAULT#
+                t-BreadcrumbRegion--useBreadcrumbTitle
+            ]
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region ddl-logs (
+        name: DDL Logs
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select DDL_LOG_ID,
+                       DDL_PREVIEW,
+                       SCHEMA_NAME,
+                       OBJECT_NAME,
+                       OBJECT_TYPE,
+                       EVENT,
+                       LOGGED,
+                       LOGGED_BY_DB_USER,
+                       LOGGED_BY_DB_PROXY_USER,
+                       LOGGED_BY_APEX_USER
+                  from LOKI_DDL_LOGS
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        messages {
+            whenNoDataFound: No data found.
+            whenMoreDataFound: The maximum row count for this report is #MAX_ROW_COUNT# rows.  Please apply a filter to reduce the number of records in your query.
+        }
+        advanced {
+            savedReportMappingIdentifier: 14223624458912816
+        }
+
+        column DDL_LOG_ID (
+            type: hidden
+            heading {
+                heading: Ddl Log ID
+            }
+            layout {
+                sequence: 0
+            }
+            source {
+                primaryKey: true
+                dataType: NUMBER
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        column DDL_PREVIEW (
+            type: link
+            heading {
+                heading: DDL Preview
+            }
+            layout {
+                sequence: 12
+            }
+            link {
+                target: {
+                    page: 5
+                    items: {
+                        P5_DDL_LOG_ID: #DDL_LOG_ID#
+                    }
+                }
+                linkText: #DDL_PREVIEW#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: L
+            }
+        )
+
+        column EVENT (
+            type: plainText
+            heading {
+                heading: Event
+            }
+            layout {
+                sequence: 6
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: F
+            }
+        )
+
+        column LOGGED (
+            type: plainText
+            heading {
+                heading: Logged
+            }
+            layout {
+                sequence: 7
+            }
+            accessibility {
+                valueIdentifiesRow: true
+            }
+            appearance {
+                formatMask: &G_DATE_TIME_FORMAT.
+            }
+            source {
+                dataType: DATE
+                timezoneAware: Y
+            }
+            advanced {
+                endUserAlias: G
+            }
+        )
+
+        column LOGGED_BY_APEX_USER (
+            type: plainText
+            heading {
+                heading: APEX User
+            }
+            layout {
+                sequence: 11
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: K
+            }
+        )
+
+        column LOGGED_BY_DB_PROXY_USER (
+            type: plainText
+            heading {
+                heading: DB Proxy User
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: J
+            }
+        )
+
+        column LOGGED_BY_DB_USER (
+            type: plainText
+            heading {
+                heading: DB User
+            }
+            layout {
+                sequence: 8
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: H
+            }
+        )
+
+        column OBJECT_NAME (
+            type: plainText
+            heading {
+                heading: Object Name
+            }
+            layout {
+                sequence: 4
+            }
+            accessibility {
+                valueIdentifiesRow: true
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: D
+            }
+        )
+
+        column OBJECT_TYPE (
+            type: plainText
+            heading {
+                heading: Object Type
+            }
+            layout {
+                sequence: 5
+            }
+            accessibility {
+                valueIdentifiesRow: true
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: E
+            }
+        )
+
+        column SCHEMA_NAME (
+            type: plainText
+            heading {
+                heading: Schema Name
+            }
+            layout {
+                sequence: 3
+            }
+            accessibility {
+                valueIdentifiesRow: true
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+        pageHeader {
+            pageHeaderText: DDL Logs
+        }
+
+        savedReport 142293 (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn DDL_PREVIEW (
+                sequence: 1
+            )
+
+            displayColumn EVENT (
+                sequence: 5
+            )
+
+            displayColumn LOGGED (
+                sequence: 6
+            )
+
+            displayColumn LOGGED_BY_APEX_USER (
+                sequence: 9
+            )
+
+            displayColumn LOGGED_BY_DB_PROXY_USER (
+                sequence: 8
+            )
+
+            displayColumn LOGGED_BY_DB_USER (
+                sequence: 7
+            )
+
+            displayColumn OBJECT_NAME (
+                sequence: 3
+            )
+
+            displayColumn OBJECT_TYPE (
+                sequence: 4
+            )
+
+            displayColumn SCHEMA_NAME (
+                sequence: 2
+            )
+
+            sort (
+                column: LOGGED
+                sort {
+                    direction: desc
+                    sequence: 1
+                }
+            )
+
+        )
+
+    )
+
+    button reset-report (
+        buttonName: RESET_REPORT
+        label: Reset
+        layout {
+            sequence: 10
+            region: @ddl-logs
+            slot: rightOfInteractiveReportSearchBar
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--noUI
+                t-Button--iconLeft
+            ]
+            icon: fa-undo-alt
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: &APP_PAGE_ID.
+                clearCache: [
+                    &APP_PAGE_ID.
+                    RIR
+                ]
+                action: resetPagination
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+)
+

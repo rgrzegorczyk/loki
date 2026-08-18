@@ -1,0 +1,848 @@
+page 4 (
+    name: Lock Details
+    alias: LOCK-DETAILS
+    title: Lock Details
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        resizable: false
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: dialogFooter
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+        settings {
+            outputAs: text
+        }
+    )
+
+    region lock-details (
+        name: Lock Details
+        type: form
+        source {
+            location: localDatabase
+            tableName: LOKI_LOCKS
+        }
+        layout {
+            sequence: 20
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: item=value
+            item: P4_LOCK_STATUS
+            value: Active
+        }
+        edit {
+            enabled: true
+            allowedOperations: [
+                add
+                update
+                delete
+            ]
+        }
+    )
+
+    region lock-log-details (
+        name: Lock Log Details
+        type: form
+        source {
+            location: localDatabase
+            tableName: LOKI_LOCKS_LOGS
+        }
+        layout {
+            sequence: 30
+            slot: contentBody
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+        serverSideCondition {
+            type: item=value
+            item: P4_LOCK_STATUS
+            value: Inactive
+        }
+    )
+
+    pageItem P4_CREATED (
+        type: datePicker
+        label {
+            label: Created
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @lock-details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            formatMask: &G_DATE_TIME_FORMAT.
+            width: 32
+        }
+        validation {
+            valueRequired: true
+            maxLength: 255
+        }
+        source {
+            formRegion: @lock-details
+            column: CREATED
+            dataType: timestampWithLocalTimeZone
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_CREATED_BY (
+        type: textField
+        label {
+            label: Created by
+            alignment: left
+        }
+        settings {
+            trimSpaces: none
+        }
+        layout {
+            sequence: 70
+            region: @lock-details
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 32
+        }
+        validation {
+            valueRequired: true
+            maxLength: 255
+        }
+        source {
+            formRegion: @lock-details
+            column: CREATED_BY
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_DDL_LOG_ID (
+        type: hidden
+        layout {
+            sequence: 100
+            region: @lock-details
+            slot: regionBody
+        }
+        source {
+            formRegion: @lock-details
+            column: DDL_LOG_ID
+            dataType: number
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P4_DDL_LOG_ID_LOG (
+        type: hidden
+        layout {
+            sequence: 120
+            region: @lock-log-details
+            slot: regionBody
+        }
+        source {
+            formRegion: @lock-log-details
+            column: DDL_LOG_ID
+            dataType: number
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P4_LOCKED (
+        type: datePicker
+        label {
+            label: Locked
+            alignment: left
+        }
+        layout {
+            sequence: 70
+            region: @lock-log-details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @lock-log-details
+            column: LOCKED
+            dataType: timestampWithLocalTimeZone
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_LOCKED_BY (
+        type: textField
+        label {
+            label: Locked By
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @lock-log-details
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 255
+        }
+        source {
+            formRegion: @lock-log-details
+            column: LOCKED_BY
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_LOCKS_LOG_ID (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @lock-log-details
+            slot: regionBody
+        }
+        source {
+            formRegion: @lock-log-details
+            column: LOCKS_LOG_ID
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P4_LOCK_ID (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @lock-details
+            slot: regionBody
+        }
+        source {
+            formRegion: @lock-details
+            column: LOCK_ID
+            dataType: number
+            primaryKey: true
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P4_LOCK_STATUS (
+        type: textField
+        label {
+            label: Status
+            alignment: left
+        }
+        layout {
+            sequence: 10
+            slot: contentBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_OBJECT_NAME (
+        type: textField
+        label {
+            label: Object Name
+            alignment: left
+        }
+        settings {
+            trimSpaces: none
+        }
+        layout {
+            sequence: 40
+            region: @lock-details
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 32
+        }
+        validation {
+            valueRequired: true
+            maxLength: 255
+        }
+        source {
+            formRegion: @lock-details
+            column: OBJECT_NAME
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_OBJECT_NAME_LOG (
+        type: textField
+        label {
+            label: Object Name
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @lock-log-details
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 255
+        }
+        source {
+            formRegion: @lock-log-details
+            column: OBJECT_NAME
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_OBJECT_TYPE (
+        type: textField
+        label {
+            label: Object Type
+            alignment: left
+        }
+        settings {
+            trimSpaces: none
+        }
+        layout {
+            sequence: 30
+            region: @lock-details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 32
+        }
+        validation {
+            valueRequired: true
+            maxLength: 255
+        }
+        source {
+            formRegion: @lock-details
+            column: OBJECT_TYPE
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_OBJECT_TYPE_LOG (
+        type: textField
+        label {
+            label: Object Type
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @lock-log-details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 255
+        }
+        source {
+            formRegion: @lock-log-details
+            column: OBJECT_TYPE
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_RELEASED (
+        type: datePicker
+        label {
+            label: Released
+            alignment: left
+        }
+        layout {
+            sequence: 90
+            region: @lock-log-details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        source {
+            formRegion: @lock-log-details
+            column: RELEASED
+            dataType: timestampWithLocalTimeZone
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_RELEASED_BY (
+        type: textField
+        label {
+            label: Released By
+            alignment: left
+        }
+        layout {
+            sequence: 100
+            region: @lock-log-details
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            maxLength: 255
+        }
+        source {
+            formRegion: @lock-log-details
+            column: RELEASED_BY
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_SCHEMA_NAME (
+        type: textField
+        label {
+            label: Schema Name
+            alignment: left
+        }
+        settings {
+            trimSpaces: none
+        }
+        layout {
+            sequence: 20
+            region: @lock-details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 32
+        }
+        validation {
+            valueRequired: true
+            maxLength: 255
+        }
+        source {
+            formRegion: @lock-details
+            column: SCHEMA_NAME
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_SCHEMA_NAME_LOG (
+        type: textField
+        label {
+            label: Schema Name
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @lock-log-details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            valueRequired: true
+            maxLength: 255
+        }
+        source {
+            formRegion: @lock-log-details
+            column: SCHEMA_NAME
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_UPDATED (
+        type: datePicker
+        label {
+            label: Updated
+            alignment: left
+        }
+        layout {
+            sequence: 80
+            region: @lock-details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            formatMask: &G_DATE_TIME_FORMAT.
+            width: 32
+        }
+        validation {
+            maxLength: 255
+        }
+        source {
+            formRegion: @lock-details
+            column: UPDATED
+            dataType: timestampWithLocalTimeZone
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_UPDATED_BY (
+        type: textField
+        label {
+            label: Updated by
+            alignment: left
+        }
+        settings {
+            trimSpaces: none
+        }
+        layout {
+            sequence: 90
+            region: @lock-details
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 32
+        }
+        validation {
+            maxLength: 255
+        }
+        source {
+            formRegion: @lock-details
+            column: UPDATED_BY
+            dataType: varchar2
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_USER_ID (
+        type: selectList
+        label {
+            label: User
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @loki-users-full-name
+        }
+        layout {
+            sequence: 50
+            region: @lock-details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            height: 1
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @lock-details
+            column: USER_ID
+            dataType: number
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P4_USER_ID_LOG (
+        type: popupLov
+        label {
+            label: User
+            alignment: left
+        }
+        lov {
+            type: sharedComponent
+            lov: @loki-users-full-name
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        layout {
+            sequence: 60
+            region: @lock-log-details
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        source {
+            formRegion: @lock-log-details
+            column: USER_ID
+            dataType: number
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    button cancel (
+        buttonName: CANCEL
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: close
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button show-ddl (
+        buttonName: Show_DDL
+        label: Show DDL
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: create
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 5
+                items: {
+                    P5_DDL_LOG_ID: &P4_DDL_LOG_ID.
+                }
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P4_DDL_LOG_ID
+        }
+    )
+
+    button show-ddl-log (
+        buttonName: Show_DDL_LOG
+        label: Show DDL
+        layout {
+            sequence: 20
+            region: @buttons
+            slot: create
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 5
+                items: {
+                    P5_DDL_LOG_ID: &P4_DDL_LOG_ID_LOG.
+                }
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        serverSideCondition {
+            type: itemIsNotNull
+            item: P4_DDL_LOG_ID_LOG
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action native-dialog-cancel (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        execution {
+            sequence: 50
+        }
+        advanced {
+            executionMappingIdentifier: 17307904105677817
+        }
+        serverSideCondition {
+            type: requestIsContainedInValue
+            value: DELETE
+        }
+    )
+
+    process initialize-form-lock-details (
+        name: Initialize form Lock Details
+        type: formInitialization
+        formRegion: @lock-details
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 17307197840677816
+        }
+        serverSideCondition {
+            type: item=value
+            item: P4_LOCK_STATUS
+            value: Active
+        }
+    )
+
+    process initialize-form-lock-log-details (
+        name: Initialize form Lock Log Details
+        type: formInitialization
+        formRegion: @lock-log-details
+        execution {
+            sequence: 20
+            point: beforeHeader
+        }
+        advanced {
+            executionMappingIdentifier: 20266954779647105
+        }
+        serverSideCondition {
+            type: item=value
+            item: P4_LOCK_STATUS
+            value: Inactive
+        }
+    )
+
+)
+

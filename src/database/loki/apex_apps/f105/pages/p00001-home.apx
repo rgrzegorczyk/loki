@@ -1,0 +1,1438 @@
+page 1 (
+    name: Locks
+    alias: HOME
+    title: &APP_NAME. - Locks
+    appearance {
+        pageTemplate: @/left-side-column
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+        warnOnUnsavedChanges: false
+    }
+    javaScript {
+        functionAndGlobalVariableDeclaration:
+            ```javascript-browser
+            function showErrors(errors) {
+              apex.message.clearErrors();
+              apex.message.showErrors(errors);
+            };
+            
+            function fetchFilteredLocksCount() {
+              return new Promise((resolve, reject) => {
+                apex.server.process('get_filtered_locks', {}, {
+                  success: (res) => {
+                    if (res.result) {
+                      resolve(res.count);
+                    } else {
+                      reject(res.msg);
+                    }
+                  }
+                });
+              });
+            }
+            
+            function unlockLock(confirmMsg, lockId, userId) {
+              apex.message.confirm(confirmMsg, function(okPressed) {
+                if (okPressed) {
+                  apex.server.process('unlock_lock', { x01: lockId, x02: userId }, {
+                    success: (res) => {
+                      if (res.result) {
+                        apex.region('loki__locks-list').refresh();
+                        apex.region('loki__locks-search').refresh();
+                      } else {
+                        showErrors([{ 
+                          type: "error",
+                          location: "page",
+                          message: res.msg
+                        }]);
+                      }
+                    }
+                  });
+                }
+              });
+            }
+            
+            async function unlockLocks() {
+              let locksCount = 0;
+            
+              try {
+                locksCount = await fetchFilteredLocksCount();
+              } catch (error) {
+                showErrors([{
+                  type: "error",
+                  location: [ "page" ],
+                  message: error.message,
+                  unsafe: false
+                }]);
+                return;
+              }
+            
+              if (!locksCount) {
+                showErrors([{
+                  type: "error",
+                  location: [ "page" ],
+                  message: "No active locks to unlock",
+                  unsafe: false
+                }]);
+                return;
+              }
+            
+              const confirmMsg = `Do you want to unlock ${locksCount} locks?`;
+            
+              apex.message.confirm(confirmMsg, function(okPressed) {
+                if (okPressed) {
+                  apex.server.process('unlock_locks', {}, {
+                    success: (res) => {
+                      if (res.result) {
+                        apex.region('loki__locks-list').refresh();
+                        apex.region('loki__locks-search').refresh();
+                      } else {
+                        showErrors([{ 
+                          type: "error",
+                          location: "page",
+                          message: res.msg
+                        }]);
+                      }
+                    }
+                  });
+                }
+              });
+            }
+            
+            function showTransferLockDialog(lockId, userId) {
+              $s('P1_LOCK_ID', lockId);
+              $s('P1_LOCK_USER_ID', userId);
+              apex.theme.openRegion('loki__transfer-lock-modal');
+            }
+            
+            async function showTransferLocksDialog() {
+              $s('P1_LOCK_ID', null);
+              $s('P1_LOCK_USER_ID', null);
+            
+              let locksCount = 0;
+            
+              try {
+                locksCount = await fetchFilteredLocksCount();
+              } catch (error) {
+                showErrors([{
+                  type: "error",
+                  location: [ "page" ],
+                  message: error.message,
+                  unsafe: false
+                }]);
+            
+                return;
+              }
+            
+            
+              if (!locksCount) {
+                showErrors([{
+                  type: "error",
+                  location: [ "page" ],
+                  message: "No active locks to transfer",
+                  unsafe: false
+                }]);
+            
+                return;
+              }
+            
+              const confirmMsg = `Do you want to transfer ${locksCount} lock${locksCount > 1 ? 's' : ''}? 
+              
+              Doing this will remove the lock${locksCount > 1 ? 's' : ''} from the current user(s) and create${locksCount > 1 ? ' ' : ' a '}new lock${locksCount > 1 ? 's' : ''} for the user selected in the next step.`;
+            
+              apex.message.confirm(confirmMsg, function(okPressed) {
+                if (okPressed) {
+                  apex.theme.openRegion('loki__transfer-lock-modal');
+                }
+              });
+            }
+            
+            function transferLock() {
+              const lockId = $v('P1_LOCK_ID');
+              const userIdTo = $v('P1_USER_ID_TO');
+            
+              if (!userIdTo) {
+                showErrors([{
+                  type: "error",
+                  location: [ "page", "inline" ],
+                  pageItem: "P1_USER_ID_TO",
+                  message: "Transfer to user is required!",
+                  unsafe: false
+                }]);
+                return;
+              }
+            
+              apex.server.process('transfer_lock', { 
+                  x01: lockId,
+                  x02: userIdTo
+                }, {
+                success: (res) => {
+                  if (res.result) {
+                    apex.region('loki__locks-list').refresh();
+                    apex.region('loki__locks-search').refresh();
+                    $s('P1_LOCK_ID', null);
+                    $s('P1_LOCK_USER_ID', null);
+                  } else {
+                    showErrors([{ 
+                      type: "error",
+                      location: "page",
+                      message: res.msg
+                    }]);
+                  }
+            
+                  apex.theme.closeRegion('loki__transfer-lock-modal');
+                }
+              });  
+            }
+            
+            function transferLocks() {
+              const userIdTo = $v('P1_USER_ID_TO');
+            
+              if (!userIdTo) {
+                showErrors([{
+                  type: "error",
+                  location: [ "page", "inline" ],
+                  pageItem: "P1_USER_ID_TO",
+                  message: "Transfer to user is required!",
+                  unsafe: false
+                }]);
+                return;
+              }
+            
+              apex.server.process('transfer_locks', { x01: userIdTo }, {
+                success: (res) => {
+                  if (res.result) {
+                    apex.region('loki__locks-list').refresh();
+                    apex.region('loki__locks-search').refresh();
+                  } else {
+                    showErrors([{ 
+                      type: "error",
+                      location: "page",
+                      message: res.msg
+                    }]);
+                  }
+            
+                  apex.theme.closeRegion('loki__transfer-lock-modal');
+                }
+              });
+            }
+            
+            async function toggleGlobalActions() {
+              let locksCount = 0;
+            
+              try {
+                locksCount = await fetchFilteredLocksCount();
+              } catch (error) {
+                showErrors([{
+                  type: "error",
+                  location: [ "page" ],
+                  message: error.message,
+                  unsafe: false
+                }]);
+                return;
+              }
+            
+              $('#loki__unlock-locks-btn').addClass('apex_disabled');
+              $('#loki__transfer-locks-btn').addClass('apex_disabled');
+              if (locksCount) {
+                $('#loki__unlock-locks-btn').removeClass('apex_disabled');
+                $('#loki__transfer-locks-btn').removeClass('apex_disabled');
+              }
+            }
+            ```
+    }
+    css {
+        inline:
+            ```css
+            .loki__content-white {
+              color: white;
+            }
+            
+            .loki__content-text-limit {
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              max-width: 200px;
+            }
+            
+            @media only screen and (min-width: 1024px) {
+              .loki__content-text-limit {
+                max-width: 350px;
+              }
+            }
+            
+            @media only screen and (min-width: 1200px) {
+              .loki__content-text-limit {
+                max-width: 500px;
+              }
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region head (
+        name: Head
+        title: &APP_NAME.
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/hero
+            templateOptions: #DEFAULT#
+        }
+        image {
+            fileUrl: #APP_FILES#icons/app-icon-512.png
+        }
+        advanced {
+            htmlDomId: loki__head
+        }
+    )
+
+    region locks-list (
+        name: Locks List
+        type: themeTemplateComponent/contentRow
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select * from (
+                  select 'Active' as status,
+                         l.lock_id,
+                         l.schema_name,
+                         l.object_type,
+                         l.object_name,
+                         to_char(l.created, :G_DATE_TIME_FORMAT) as created_date_time,
+                         u.full_name as user_full_name,
+                         'fa-lock u-color-35-bg' as icon_class,
+                         'success' as badge_state,
+                         l.user_id,
+                         l.created as datetime,
+                         l.ddl_log_id,
+                         apex_page.get_url(
+                           p_page => 4, 
+                           p_items => 'P4_LOCK_ID,P4_LOCK_STATUS', 
+                           p_values => '' || l.lock_id || ',Active'
+                         ) as details_dialog_url
+                    from loki_locks l
+                  inner join loki_users u on l.user_id = u.user_id
+                
+                  union all
+                
+                  select 'Inactive' as status,
+                         l.locks_log_id,
+                         l.schema_name,
+                         l.object_type,
+                         l.object_name,
+                         to_char(l.locked, :G_DATE_TIME_FORMAT),
+                         u.full_name,
+                         'fa-unlock u-color-30-bg',
+                         '',
+                         l.user_id,
+                         l.locked,
+                         l.ddl_log_id,
+                         apex_page.get_url(
+                           p_page => 4, 
+                           p_items => 'P4_LOCKS_LOG_ID,P4_LOCK_STATUS', 
+                           p_values => '' || l.locks_log_id || ',Inactive'
+                         )
+                  from loki_locks_logs l
+                  inner join loki_users u on l.user_id = u.user_id and l.released is not null
+                )
+                order by datetime
+                ```
+        }
+        layout {
+            sequence: 40
+            slot: body
+            startNewRow: false
+        }
+        appearance {
+            template: @/blank-with-attributes-no-grid
+            templateOptions: #DEFAULT#
+        }
+        accessibility {
+            landmarkType: region
+        }
+        advanced {
+            htmlDomId: loki__locks-list
+        }
+        componentAppearance {
+            display: report
+        }
+        settings {
+            title:
+                ```html
+                <a href="&DETAILS_DIALOG_URL.">
+                  <span class="loki__content-text-limit">&SCHEMA_NAME..&OBJECT_NAME.</span>
+                </a>
+                ```
+            description:
+                ```html
+                &OBJECT_TYPE.
+                <div style="display:none;" data-lock_id=&LOCK_ID. data-user_id=&USER_ID. data-status=&STATUS.></div>
+                ```
+            miscellaneous:
+                ```html
+                &USER_FULL_NAME.
+                <p>&CREATED_DATE_TIME.</p>
+                ```
+            displayAvatar: true
+            displayBadge: true
+        }
+        plugin-avatar {
+            icon: &ICON_CLASS.
+            shape: noShape
+            size: extraSmall
+            cssClasses: fa fa-2xl padding-top-sm padding-bottom-sm padding-left-sm padding-right-sm loki__content-white
+        }
+        plugin-badge {
+            label: &STATUS.
+            value: STATUS
+            state: BADGE_STATE
+            position: end
+            alignment: center
+        }
+        plugin-appearance {
+            applyThemeColors: false
+            removePadding: true
+        }
+        pagination {
+            showTotalCount: true
+        }
+        messages {
+            whenNoDataFound: No locks
+        }
+
+        column BADGE_STATE (
+            layout {
+                sequence: 130
+            }
+            source {
+                databaseColumn: BADGE_STATE
+                dataType: varchar2
+            }
+        )
+
+        column CREATED_DATE_TIME (
+            layout {
+                sequence: 80
+            }
+            source {
+                databaseColumn: CREATED_DATE_TIME
+                dataType: varchar2
+            }
+            accessibility {
+                valueIdentifiesRow: true
+            }
+        )
+
+        column DATETIME (
+            layout {
+                sequence: 110
+            }
+            source {
+                databaseColumn: DATETIME
+                dataType: timestampWithLocalTimeZone
+            }
+        )
+
+        column DDL_LOG_ID (
+            layout {
+                sequence: 120
+            }
+            source {
+                databaseColumn: DDL_LOG_ID
+                dataType: number
+            }
+        )
+
+        column DETAILS_DIALOG_URL (
+            layout {
+                sequence: 140
+            }
+            source {
+                databaseColumn: DETAILS_DIALOG_URL
+                dataType: varchar2
+            }
+        )
+
+        column ICON_CLASS (
+            layout {
+                sequence: 70
+            }
+            source {
+                databaseColumn: ICON_CLASS
+                dataType: varchar2
+            }
+        )
+
+        column LOCK_ID (
+            layout {
+                sequence: 10
+            }
+            source {
+                databaseColumn: LOCK_ID
+                dataType: number
+                primaryKey: true
+            }
+        )
+
+        column OBJECT_NAME (
+            layout {
+                sequence: 40
+            }
+            source {
+                databaseColumn: OBJECT_NAME
+                dataType: varchar2
+            }
+            accessibility {
+                valueIdentifiesRow: true
+            }
+        )
+
+        column OBJECT_TYPE (
+            layout {
+                sequence: 30
+            }
+            source {
+                databaseColumn: OBJECT_TYPE
+                dataType: varchar2
+            }
+            accessibility {
+                valueIdentifiesRow: true
+            }
+        )
+
+        column SCHEMA_NAME (
+            layout {
+                sequence: 20
+            }
+            source {
+                databaseColumn: SCHEMA_NAME
+                dataType: varchar2
+            }
+            accessibility {
+                valueIdentifiesRow: true
+            }
+        )
+
+        column STATUS (
+            layout {
+                sequence: 100
+            }
+            source {
+                databaseColumn: STATUS
+                dataType: varchar2
+            }
+            accessibility {
+                valueIdentifiesRow: true
+            }
+        )
+
+        column USER_FULL_NAME (
+            layout {
+                sequence: 60
+            }
+            source {
+                databaseColumn: USER_FULL_NAME
+                dataType: varchar2
+            }
+            accessibility {
+                valueIdentifiesRow: true
+            }
+        )
+
+        column USER_ID (
+            layout {
+                sequence: 90
+            }
+            source {
+                databaseColumn: USER_ID
+                dataType: number
+            }
+        )
+
+        action actions (
+            position: primaryActions
+            template: menu
+            label: Actions
+            layout {
+                sequence: 10
+            }
+            appearance {
+                displayType: icon
+                icon: fa-ellipsis-v
+                showAsDisabled: true
+            }
+
+            menu comp_menu_entry (
+                type: separator
+                layout {
+                    sequence: 30
+                }
+            )
+
+            menu show-ddl (
+                label: Show DDL
+                layout {
+                    sequence: 40
+                }
+                behavior {
+                    target: {
+                        page: 5
+                        items: {
+                            P5_DDL_LOG_ID: &DDL_LOG_ID.
+                        }
+                    }
+                }
+                appearance {
+                    icon: fa-database-file
+                }
+                serverSideCondition {
+                    type: itemIsNotNull
+                    item: DDL_LOG_ID
+                }
+            )
+
+            menu show-details (
+                label: Show Details
+                layout {
+                    sequence: 50
+                }
+                behavior {
+                    target: {
+                        page: 4
+                        items: {
+                            P4_LOCK_ID: &LOCK_ID.
+                            P4_LOCK_STATUS: &STATUS.
+                            P4_LOCKS_LOG_ID: &LOCK_ID.
+                        }
+                    }
+                }
+                appearance {
+                    icon: fa-info-circle-o
+                }
+                serverSideCondition {
+                    type: itemIsNotNull
+                    item: LOCK_ID
+                }
+            )
+
+            menu transfer (
+                label: Transfer
+                layout {
+                    sequence: 20
+                }
+                behavior {
+                    type: redirectUrl
+                    targetUrl: javascript: showTransferLockDialog('&LOCK_ID.', '&USER_ID.');
+                    linkAttributes: data-id='&LOCK_ID'
+                }
+                appearance {
+                    icon: fa-share
+                }
+                serverSideCondition {
+                    type: expression
+                    plsqlExpression: :STATUS = 'Active' and (:G_USER_ID = :USER_ID or :G_ADMIN_YN = 'Y')
+                }
+            )
+
+            menu unlock (
+                label: Unlock
+                layout {
+                    sequence: 10
+                }
+                behavior {
+                    type: redirectUrl
+                    targetUrl: javascript: unlockLock(`Do you want to unlock &OBJECT_TYPE. &SCHEMA_NAME..&OBJECT_NAME.?`, '&LOCK_ID.', '&USER_ID.');
+                }
+                appearance {
+                    icon: fa-unlock
+                }
+                serverSideCondition {
+                    type: expression
+                    plsqlExpression: :STATUS = 'Active' and (:G_USER_ID = :USER_ID or :G_ADMIN_YN = 'Y')
+                }
+            )
+
+        )
+
+    )
+
+    region search (
+        name: Search
+        type: facetedSearch
+        source {
+            filteredRegion: @locks-list
+        }
+        layout {
+            sequence: 10
+            slot: leftColumn
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--hideHeader js-addHiddenHeadingRoleDesc
+                t-Region--noBorder
+                t-Region--scrollBody
+            ]
+        }
+        accessibility {
+            landmarkLabel: Filters
+        }
+        advanced {
+            htmlDomId: loki__locks-search
+        }
+        settings {
+            compactNosThreshold: 10000
+            displayChartForTopNValues: 10
+        }
+
+        facet P1_OBJECT_TYPE (
+            type: checkboxGroup
+            label {
+                label: Object Type
+            }
+            lov {
+                type: distinctValues
+            }
+            layout {
+                sequence: 60
+            }
+            listEntries {
+                maxDisplayedEntries: 7
+            }
+            source {
+                databaseColumn: OBJECT_TYPE
+            }
+        )
+
+        facet P1_SCHEMA (
+            type: checkboxGroup
+            label {
+                label: Schema
+            }
+            lov {
+                type: distinctValues
+            }
+            layout {
+                sequence: 50
+            }
+            listEntries {
+                maxDisplayedEntries: 7
+            }
+            source {
+                databaseColumn: SCHEMA_NAME
+            }
+        )
+
+        facet P1_SEARCH (
+            type: search
+            label {
+                label: Search
+            }
+            layout {
+                sequence: 10
+            }
+        )
+
+        facet P1_STATUS (
+            type: checkboxGroup
+            label {
+                label: Status
+            }
+            lov {
+                type: staticValues
+                staticValues: STATIC:Active;Active,Inactive;Inactive
+            }
+            layout {
+                sequence: 20
+            }
+            listEntries {
+                sortByTopCounts: false
+                maxDisplayedEntries: 7
+            }
+            source {
+                databaseColumn: STATUS
+            }
+        )
+
+        facet P1_USER (
+            type: checkboxGroup
+            label {
+                label: User
+            }
+            lov {
+                type: sqlQuery
+                sqlQuery:
+                    ```sql
+                    select full_name,
+                           user_id
+                      from loki_users
+                     where active_yn = 'Y'
+                    order by full_name
+                    ```
+            }
+            layout {
+                sequence: 30
+            }
+            listEntries {
+                maxDisplayedEntries: 7
+            }
+            source {
+                databaseColumn: USER_ID
+            }
+        )
+
+    )
+
+    region transfer-lock-s (
+        name: Transfer Lock(s)
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: dialogsDrawersAndPopups
+        }
+        appearance {
+            template: @/inline-dialog
+            templateOptions: [
+                #DEFAULT#
+                js-dialog-autoheight
+                js-dialog-size600x400
+            ]
+        }
+        advanced {
+            htmlDomId: loki__transfer-lock-modal
+        }
+    )
+
+    pageItem P1_LOCK_ID (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+    )
+
+    pageItem P1_LOCK_USER_ID (
+        type: hidden
+        settings {
+            valueProtected: false
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+    )
+
+    pageItem P1_USER_ID_TO (
+        type: popupLov
+        label {
+            label: Transfer to User
+            alignment: left
+        }
+        lov {
+            type: functionBody
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                  l_query varchar2(1000);
+                begin
+                  if :P1_LOCK_USER_ID is null and :G_ADMIN_YN = 'Y' then
+                    l_query := q'~
+                select full_name,
+                       user_id
+                  from loki_users
+                 where active_yn = 'Y'~';
+                  elsif :P1_LOCK_USER_ID is null and :G_ADMIN_YN = 'N' then
+                    l_query := q'~
+                select full_name,
+                       user_id
+                  from loki_users
+                 where active_yn = 'Y' and user_id != :G_USER_ID~';
+                  elsif :P1_LOCK_USER_ID is not null then
+                    l_query := q'~
+                select full_name,
+                       user_id
+                  from loki_users
+                 where active_yn = 'Y' and user_id != :P1_LOCK_USER_ID~';
+                  end if;
+                  
+                  return l_query;
+                end;
+                ```
+            displayExtraValues: false
+            displayNullValue: false
+        }
+        cascadingLov {
+            parentItems: P1_LOCK_USER_ID
+            itemsToSubmit: P1_LOCK_USER_ID
+        }
+        layout {
+            sequence: 20
+            region: @transfer-lock-s
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+    )
+
+    button close (
+        buttonName: Close
+        label: Close
+        layout {
+            sequence: 10
+            region: @transfer-lock-s
+            slot: close
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button create-lock (
+        buttonName: Create_Lock
+        label: Create
+        layout {
+            sequence: 40
+            region: @head
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-lock-plus
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: 2
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+        advanced {
+            htmlDomId: loki__create-lock-btn
+        }
+    )
+
+    button transfer (
+        buttonName: Transfer
+        label: Transfer
+        layout {
+            sequence: 10
+            region: @transfer-lock-s
+            slot: create
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            hot: true
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-share
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        advanced {
+            htmlDomId: loki__transfer-btn
+        }
+    )
+
+    button transfer-locks (
+        buttonName: Transfer_Locks
+        label: Transfer All
+        layout {
+            sequence: 30
+            region: @head
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-share
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        advanced {
+            htmlDomId: loki__transfer-locks-btn
+        }
+    )
+
+    button unlock-locks (
+        buttonName: Unlock_Locks
+        label: Unlock All
+        layout {
+            sequence: 20
+            region: @head
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--iconLeft
+            ]
+            icon: fa-unlock
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+        advanced {
+            htmlDomId: loki__unlock-locks-btn
+        }
+    )
+
+    dynamicAction close-transfer-dialog (
+        name: Close Transfer Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @close
+        }
+
+        action native-close-region (
+            action: closeRegion
+            affectedElements {
+                selectionType: region
+                region: @transfer-lock-s
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction dialog-closed-create-lock (
+        name: Dialog Closed (Create Lock)
+        execution {
+            sequence: 30
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: button
+            button: @create-lock
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @locks-list
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+        action native-refresh-2 (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @search
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction toggle-global-actions (
+        name: Toggle Global Actions
+        execution {
+            sequence: 60
+        }
+        when {
+            event: apexafterrefresh
+            selectionType: region
+            region: @search
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode: toggleGlobalActions();
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction transfer-lock (
+        name: Transfer Lock
+        execution {
+            sequence: 20
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @transfer
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    if ($v('P1_LOCK_ID')) {
+                      transferLock();
+                    } else {
+                      transferLocks();
+                    }
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction transfer-locks (
+        name: Transfer Locks
+        execution {
+            sequence: 40
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @transfer-locks
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode: showTransferLocksDialog();
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction unlock-locks (
+        name: Unlock Locks
+        execution {
+            sequence: 50
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @unlock-locks
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode: unlockLocks();
+            }
+            execution {
+                sequence: 20
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    process get-filtered-locks (
+        name: get_filtered_locks
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                declare
+                  l_context   apex_exec.t_context;
+                  l_page_id   apex_application_page_regions.page_id%type;
+                  l_region_id apex_application_page_regions.region_id%type;
+                  l_response  json_object_t := json_object_t();
+                begin
+                  l_response.put('result', true);
+                
+                  begin
+                    select page_id, region_id
+                      into l_page_id, l_region_id
+                      from apex_application_page_regions
+                     where application_name = 'Loki'
+                       and page_name = 'Locks'
+                       and static_id = 'loki__locks-list';
+                    
+                    l_context := apex_region.open_query_context(
+                      p_page_id     => l_page_id,
+                      p_region_id   => l_region_id
+                    );
+                
+                    apex_collection.create_or_truncate_collection(
+                      p_collection_name => 'LOKI_FILTERED_LOCKS'
+                    );
+                
+                    while apex_exec.next_row(l_context) loop
+                      if apex_exec.get_varchar2(
+                          p_context     => l_context, 
+                          p_column_name => 'STATUS'
+                        ) = 'Active' then
+                
+                        apex_collection.add_member(
+                          p_collection_name => 'LOKI_FILTERED_LOCKS',
+                          p_c001            => apex_exec.get_varchar2(
+                            p_context     => l_context,
+                            p_column_name => 'LOCK_ID'
+                          ),
+                          p_c002            => apex_exec.get_varchar2(
+                            p_context     => l_context,
+                            p_column_name => 'USER_ID'
+                          )
+                        );
+                      end if;
+                    end loop;
+                
+                    l_response.put('count', apex_collection.collection_member_count(
+                      p_collection_name => 'LOKI_FILTERED_LOCKS'
+                    ));
+                    
+                  exception 
+                    when no_data_found then
+                      l_response.put('count', 0);
+                    when others then
+                      l_response.put('result', false);
+                      l_response.put('msg', substr(sqlerrm(), 1, 2000));
+                  end;
+                
+                  htp.p(l_response.to_clob());
+                end;
+                ```
+        }
+        execution {
+            sequence: 50
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 15628218640587121
+        }
+    )
+
+    process transfer-lock (
+        name: transfer_lock
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                declare
+                  l_response json_object_t := json_object_t();
+                begin
+                  l_response.put('result', true);
+                
+                  begin
+                    -- Transfer one lock
+                    loki_lock.transfer_lock(
+                      i_lock_id => apex_application.g_x01,
+                      i_user_id => apex_application.g_x02
+                    );
+                    commit;
+                  exception when others then
+                    l_response.put('result', false);
+                    l_response.put('msg', substr(sqlerrm(), 1, 2000));
+                  end;
+                
+                  htp.p(l_response.to_clob());
+                end;
+                ```
+        }
+        execution {
+            sequence: 30
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 13228001885743714
+        }
+    )
+
+    process transfer-locks (
+        name: transfer_locks
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                declare
+                  l_response json_object_t := json_object_t();
+                  l_lock_ids apex_t_number;
+                begin
+                  l_response.put('result', true);
+                
+                  begin
+                    select c001 as lock_id
+                      bulk collect into l_lock_ids
+                      from apex_collections
+                     where collection_name = 'LOKI_FILTERED_LOCKS';
+                
+                    loki_lock.transfer_locks(
+                      i_lock_ids   => l_lock_ids,
+                      i_to_user_id => apex_application.g_x01
+                    );
+                    commit;
+                
+                    apex_collection.delete_collection(
+                      p_collection_name => 'LOKI_FILTERED_LOCKS'
+                    );
+                  exception when others then
+                    rollback;
+                    l_response.put('result', false);
+                    l_response.put('msg', substr(sqlerrm(), 1, 2000));
+                  end;
+                
+                  htp.p(l_response.to_clob());
+                end;
+                ```
+        }
+        execution {
+            sequence: 40
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 15627767838587116
+        }
+    )
+
+    process unlock-lock (
+        name: unlock_lock
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                declare
+                  l_response json_object_t := json_object_t();
+                begin
+                  l_response.put('result', true);
+                
+                  begin
+                    loki_lock.unlock_lock(
+                      i_lock_id => apex_application.g_x01,
+                      i_user_id => apex_application.g_x02
+                    );
+                    commit;
+                  exception when others then
+                    l_response.put('result', false);
+                    l_response.put('msg', substr(sqlerrm(), 1, 2000));
+                  end;
+                
+                  htp.p(l_response.to_clob());
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 11941971759965247
+        }
+    )
+
+    process unlock-locks (
+        name: unlock_locks
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                declare
+                  l_response json_object_t := json_object_t();
+                  l_locks    loki_lock.t_lock_user_type := loki_lock.t_lock_user_type();
+                begin
+                  l_response.put('result', true);
+                
+                  begin
+                    select c001 as lock_id,
+                           c002 as user_id
+                      bulk collect into l_locks
+                      from apex_collections
+                     where collection_name = 'LOKI_FILTERED_LOCKS';
+                     
+                    loki_lock.unlock_locks(i_locks => l_locks);
+                    commit;
+                    
+                    apex_collection.delete_collection(
+                      p_collection_name => 'LOKI_FILTERED_LOCKS'
+                    );
+                  exception when others then
+                    rollback;
+                    l_response.put('result', false);
+                    l_response.put('msg', substr(sqlerrm(), 1, 2000));
+                  end;
+                
+                  htp.p(l_response.to_clob());
+                end;
+                ```
+        }
+        execution {
+            sequence: 20
+            point: ajaxCallback
+        }
+        advanced {
+            executionMappingIdentifier: 15627866768587117
+        }
+    )
+
+    branch (
+        name: Go to Getting Started Page
+        execution {
+            sequence: 10
+            point: beforeHeader
+        }
+        behavior {
+            target: {
+                page: 1000
+            }
+        }
+        serverSideCondition {
+            type: expression
+            plsqlExpression: loki_util.get_settings().first_run = loki_util.c_yes
+        }
+    )
+
+)
+

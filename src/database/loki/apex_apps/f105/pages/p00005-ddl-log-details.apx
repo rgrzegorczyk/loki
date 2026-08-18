@@ -1,0 +1,385 @@
+page 5 (
+    name: DDL Log Details
+    alias: DDL-LOG-DETAILS
+    title: DDL Log Details
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/drawer
+        templateOptions: [
+            #DEFAULT#
+            js-dialog-class-t-Drawer--pullOutEnd
+        ]
+    }
+    dialog {
+        resizable: false
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    css {
+        inline:
+            ```css
+            pre code {
+              display: block;
+              background: #f5f5f5;
+              padding: 1rem;
+              border-radius: 5px;
+              overflow-x: auto;
+              white-space: pre;
+            }
+            ```
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: dialogFooter
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region ddl (
+        name: DDL
+        title: DDL Code
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                  l_json_data_clob    clob;
+                  l_json_data_length  pls_integer;
+                  l_step              pls_integer := 8000;
+                  l_position          pls_integer := 1;
+                  l_buffer            varchar2(32767);
+                begin
+                  begin
+                    select ddl
+                      into l_json_data_clob
+                      from loki_ddl_logs
+                    where ddl_log_id = :P5_DDL_LOG_ID;
+                  exception when no_data_found then
+                    l_json_data_clob := empty_clob();
+                  end;
+                  
+                  l_json_data_length := sys.dbms_lob.getlength(l_json_data_clob);
+                  if l_json_data_length = 0 then
+                    sys.htp.prn('<p>No DDL provided</p>');
+                  else
+                    sys.htp.prn('<pre><code>');
+                    while l_position < l_json_data_length loop
+                      begin
+                        sys.dbms_lob.read(l_json_data_clob, l_step, l_position, l_buffer);
+                        l_position := l_position + l_step;
+                        sys.htp.prn(apex_escape.html(l_buffer));
+                      exception when no_data_found then
+                        l_json_data_clob := empty_clob();
+                        l_position := l_json_data_length;
+                      end;
+                    end loop;
+                    sys.htp.p('</code></pre>');
+                  end if;
+                end;
+                ```
+        }
+        layout {
+            sequence: 50
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--noBorder
+                t-Region--scrollBody
+            ]
+        }
+        advanced {
+            htmlDomId: loki__ddl-preview
+        }
+    )
+
+    region ddl-log-items (
+        name: DDL Log Items
+        type: staticContent
+        layout {
+            sequence: 20
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--removeHeader js-removeLandmark
+                t-Region--noBorder
+                t-Region--scrollBody
+            ]
+        }
+    )
+
+    pageItem P5_APEX_USER (
+        type: textField
+        label {
+            label: APEX User
+            alignment: left
+        }
+        layout {
+            sequence: 60
+            region: @ddl-log-items
+            slot: regionBody
+            alignment: left
+            columnSpan: 6
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select logged_by_apex_user
+                  from loki_ddl_logs
+                 where ddl_log_id = :P5_DDL_LOG_ID
+                ```
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P5_DB_PROXY_USER (
+        type: textField
+        label {
+            label: DB Proxy User
+            alignment: left
+        }
+        layout {
+            sequence: 50
+            region: @ddl-log-items
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select logged_by_db_proxy_user
+                  from loki_ddl_logs
+                 where ddl_log_id = :P5_DDL_LOG_ID
+                ```
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P5_DB_USER (
+        type: textField
+        label {
+            label: DB User
+            alignment: left
+        }
+        layout {
+            sequence: 40
+            region: @ddl-log-items
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select logged_by_db_user
+                  from loki_ddl_logs
+                 where ddl_log_id = :P5_DDL_LOG_ID
+                ```
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P5_DDL_LOG_ID (
+        type: hidden
+        layout {
+            sequence: 10
+            region: @ddl-log-items
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    pageItem P5_EVENT (
+        type: textField
+        label {
+            label: Event
+            alignment: left
+        }
+        layout {
+            sequence: 20
+            region: @ddl-log-items
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select event
+                  from loki_ddl_logs
+                 where ddl_log_id = :P5_DDL_LOG_ID
+                ```
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    pageItem P5_LOGGED (
+        type: textField
+        label {
+            label: Logged
+            alignment: left
+        }
+        layout {
+            sequence: 30
+            region: @ddl-log-items
+            slot: regionBody
+            alignment: left
+            startNewRow: false
+        }
+        appearance {
+            template: @/optional-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        source {
+            type: sqlQuerySingleValue
+            sqlQuery:
+                ```sql
+                select to_char(logged, :G_DATE_TIME_FORMAT)
+                  from loki_ddl_logs
+                 where ddl_log_id = :P5_DDL_LOG_ID
+                ```
+        }
+        readOnly {
+            type: always
+        }
+    )
+
+    button close (
+        buttonName: Close
+        label: Close
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: close
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button copy-ddl-to-clipboard (
+        buttonName: Copy_DDL_to_Clipboard
+        label: Copy to Clipboard
+        layout {
+            sequence: 10
+            region: @ddl
+            slot: copy
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    dynamicAction close-dialog (
+        name: Close Dialog
+        execution {
+            sequence: 20
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @close
+        }
+
+        action native-dialog-close (
+            action: closeDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    dynamicAction copy-to-clipboard (
+        name: Copy to Clipboard
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @copy-ddl-to-clipboard
+        }
+
+        action native-javascript-code (
+            action: executeJsCode
+            settings {
+                jsCode:
+                    ```javascript-browser
+                    const el = document.querySelector('#loki__ddl-preview .t-Region-body');
+                    navigator.clipboard.writeText(el.textContent.trim());
+                    apex.message.showPageSuccess('Copied to clipboad');
+                    ```
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)
+

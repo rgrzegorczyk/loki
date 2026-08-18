@@ -1,0 +1,79 @@
+app LOKI-DATABASE-OBJECTS-LOCKING-UTILITY (
+    name: Loki
+    version: Release 24.1.1
+    logo {
+        type: text
+        text: Loki
+    }
+    navigation {
+        homeUrl: {
+            page: 1
+        }
+        loginUrl: {
+            page: LOGIN
+        }
+    }
+    navigationMenu {
+        listTemplate: @/side-navigation-menu
+        templateOptions: [
+            #DEFAULT#
+            js-defaultCollapsed
+            js-navCollapsed--hidden
+            t-TreeNav--styleA
+        ]
+        list: @navigation-menu
+    }
+    navigationBar {
+        list: @navigation-bar
+        listTemplate: @/navigation-bar
+        templateOptions: #DEFAULT#
+    }
+    userInterface {
+        currentTheme: @universal-theme
+        globalPage: 0
+        addBuiltWithApexToFooter: false
+    }
+    appFormatMasks {
+        date: DD-MON-YYYY
+        dateTime: DD-MON-YYYY HH24:MI
+        timestamp: DD-MON-YYYY HH24:MI
+        timestampTimeZone: DD-MON-YYYY HH24:MI
+    }
+    authentication {
+        scheme: @builder-extension-sign-in
+        publicUser: APEX_PUBLIC_USER
+    }
+    authorization {
+        scheme: @basic-user
+    }
+    security {
+        deepLinking: true
+    }
+    sessionStateProtection {
+        checksumSalt: 91AC1BE62E6EB943013625AA6C371438EE8E69A554B62AE6C804B0B9570E3EA5
+    }
+    sessionManagement {
+        maxSessionLength: 28800
+        maxSessionIdleTime: 28800
+    }
+    globalization {
+        documentDirection: leftToRight
+    }
+    runtime {
+        allowFeedback: true
+    }
+    availability {
+        status: available
+    }
+    advanced {
+        modernizeApp: true
+    }
+
+    substitution APP_NAME (
+        value {
+            staticValue: Loki
+        }
+    )
+
+)
+

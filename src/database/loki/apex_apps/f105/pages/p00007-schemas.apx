@@ -1,0 +1,250 @@
+page 7 (
+    name: Schemas
+    alias: SCHEMAS
+    title: &APP_NAME. - Schemas
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        authorizationScheme: @administration-rights
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: [
+                #DEFAULT#
+                t-BreadcrumbRegion--useBreadcrumbTitle
+            ]
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region schemas (
+        name: Schemas
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select aws.schema as schema_name,
+                       case when tp.grantee is null and aa.owner is null then 'N'
+                         else 'Y'
+                       end as granted_yn,
+                       case when aa.owner is null then 'N'
+                            else 'Y'
+                       end as loki_owner_yn
+                  from (select distinct schema from apex_workspace_schemas) aws
+                  left join apex_applications aa on aws.schema = aa.owner
+                       and aa.application_id = :app_id
+                  left join table_privileges tp on aws.schema = tp.grantee
+                       and tp.table_name = 'LOKI_LOCK'
+                       and tp.grantor = (
+                         select owner
+                           from apex_applications
+                          where application_id = :app_id
+                       )
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+        advanced {
+            regionDisplaySelector: true
+        }
+        pagination {
+            type: rowRangesXToY
+        }
+        performance {
+            maxRowsToProcess: 1000000
+        }
+        advanced {
+            savedReportMappingIdentifier: 154579726790059021
+        }
+
+        column GRANTED_YN (
+            type: plainText
+            heading {
+                heading: Granted
+                alignment: center
+            }
+            layout {
+                sequence: 20
+                columnAlignment: center
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {with/}
+                      SUCCESS:=#GRANTED_YN#
+                    {apply THEME$LOKI_YES_NO_COLUMN/}
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: B
+            }
+        )
+
+        column LOKI_OWNER_YN (
+            type: plainText
+            heading {
+                heading: "Loki Owner "
+                alignment: center
+            }
+            layout {
+                sequence: 30
+                columnAlignment: center
+            }
+            columnFormatting {
+                htmlExpression:
+                    ```html
+                    {with/}
+                      SUCCESS:=#LOKI_OWNER_YN#
+                    {apply THEME$LOKI_YES_NO_COLUMN/}
+                    ```
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: C
+            }
+        )
+
+        column SCHEMA_NAME (
+            type: link
+            heading {
+                heading: Schema Name
+            }
+            layout {
+                sequence: 10
+            }
+            link {
+                target: {
+                    page: 8
+                    items: {
+                        P8_SCHEMA_NAME: #SCHEMA_NAME#
+                    }
+                }
+                linkText: #SCHEMA_NAME#
+            }
+            source {
+                dataType: STRING
+            }
+            advanced {
+                endUserAlias: A
+            }
+        )
+
+        page {
+            borderWidth: 0.5
+            borderColor: #666666
+        }
+
+        savedReport 1545937 (
+            visibility: primaryDefault
+            view {
+                rowsPerPage: 50
+            }
+
+            displayColumn GRANTED_YN (
+                sequence: 2
+            )
+
+            displayColumn LOKI_OWNER_YN (
+                sequence: 3
+            )
+
+            displayColumn SCHEMA_NAME (
+                sequence: 1
+            )
+
+        )
+
+    )
+
+    button reset-report (
+        buttonName: RESET_REPORT
+        label: Reset
+        layout {
+            sequence: 10
+            region: @schemas
+            slot: rightOfInteractiveReportSearchBar
+        }
+        appearance {
+            buttonTemplate: @/text-with-icon
+            templateOptions: [
+                #DEFAULT#
+                t-Button--noUI
+                t-Button--iconLeft
+            ]
+            icon: fa-undo-alt
+        }
+        behavior {
+            action: redirectThisApp
+            target: {
+                page: &APP_PAGE_ID.
+                clearCache: [
+                    &APP_PAGE_ID.
+                    RIR
+                ]
+                action: resetPagination
+            }
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    dynamicAction edit-report-dialog-closed (
+        name: Edit Report - Dialog Closed
+        execution {
+            sequence: 10
+        }
+        when {
+            event: apexafterclosedialog
+            selectionType: region
+            region: @schemas
+        }
+
+        action native-refresh (
+            action: refresh
+            affectedElements {
+                selectionType: region
+                region: @schemas
+            }
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+)
+

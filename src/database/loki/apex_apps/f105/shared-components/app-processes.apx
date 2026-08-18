@@ -1,0 +1,33 @@
+appProcess after-auth-init (
+    name: After Auth Init
+    type: executeCode
+    source {
+        plsqlCode:
+            ```plsql
+            declare
+              l_user loki_users%rowtype;
+            begin
+              l_user := loki_util.get_current_user();
+            
+              :G_ADMIN_YN := case when loki_util.is_admin() then 'Y' else 'N' end;
+              :G_USER_ID  := l_user.user_id;
+            
+              :G_DATE_TIME_FORMAT := l_user.date_time_format;
+              apex_util.set_session_time_zone(l_user.time_zone);
+            
+              :P1_USER   := :G_USER_ID;
+              :P1_STATUS := 'Active';
+            
+              -- Initialize Welcome dialog application items
+              :G_ABOUT_PAGE_URL   := apex_page.get_url(p_page => 'about-this-application');
+              :G_SCHEMAS_PAGE_URL := apex_page.get_url(p_page => 'schemas');
+              :G_USERS_PAGE_URL   := apex_page.get_url(p_page => 'users');
+            end;
+            ```
+    }
+    execution {
+        sequence: 1
+        point: afterAuthentication
+    }
+)
+

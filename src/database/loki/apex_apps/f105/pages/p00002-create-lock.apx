@@ -1,0 +1,338 @@
+page 2 (
+    name: Create Lock Dialog
+    alias: CREATE-LOCK
+    title: Create Lock
+    appearance {
+        pageMode: modalDialog
+        dialogTemplate: @/modal-dialog
+        templateOptions: #DEFAULT#
+    }
+    dialog {
+        resizable: false
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region buttons (
+        name: Buttons
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: dialogFooter
+        }
+        appearance {
+            template: @/buttons-container
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region main (
+        name: Main
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: contentBody
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--removeHeader js-removeLandmark
+                t-Region--noBorder
+                t-Region--scrollBody
+            ]
+        }
+        advanced {
+            htmlDomId: loki__create-lock-dialog
+        }
+    )
+
+    pageItem P2_OBJECT_NAME (
+        type: popupLov
+        label {
+            label: Object Name
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select object_name d,
+                       object_name r
+                  from dba_objects
+                 where owner = :P2_SCHEMA_NAME
+                  and owner in (
+                    select schema
+                    from apex_workspace_schemas
+                  )
+                  and object_type = :P2_OBJECT_TYPE
+                  and (:P2_OBJECT_TYPE != 'TRIGGER' or object_name in (
+                    select trigger_name
+                    from dba_triggers
+                    where trim(base_object_type) in ('DATABASE', 'SCHEMA')
+                      and owner = :P2_SCHEMA_NAME
+                  ))
+                order by d
+                ```
+            nullDisplayValue: - Select Object Name -
+        }
+        cascadingLov {
+            parentItems: [
+                P2_OBJECT_TYPE
+                P2_SCHEMA_NAME
+            ]
+        }
+        layout {
+            sequence: 40
+            region: @main
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        serverSideCondition {
+            type: expression
+            plsqlExpression: loki_util.dba_views_granted()
+        }
+    )
+
+    pageItem P2_OBJECT_NAME_TEXT_ONLY (
+        type: textField
+        label {
+            label: Object Name
+            alignment: left
+        }
+        settings {
+            textCase: upper
+        }
+        layout {
+            sequence: 50
+            region: @main
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+        serverSideCondition {
+            type: expression
+            plsqlExpression: not loki_util.dba_views_granted()
+        }
+    )
+
+    pageItem P2_OBJECT_TYPE (
+        type: popupLov
+        label {
+            label: Object Type
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select distinct case loki_object_type
+                       when 'TRIGGER' then
+                         'TRIGGER (SYSTEM triggers only)'
+                       else
+                         loki_object_type end d,
+                       dba_objects_object_type r
+                  from loki_object_types
+                 where loki_locking_type in ('DIRECT', 'MIXED')
+                 order by d
+                
+                ```
+            nullDisplayValue: - Select Object Type -
+        }
+        layout {
+            sequence: 20
+            region: @main
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+    )
+
+    pageItem P2_SCHEMA_NAME (
+        type: popupLov
+        label {
+            label: Schema Name
+            alignment: left
+        }
+        lov {
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select distinct schema d,
+                       schema r
+                  from apex_workspace_schemas
+                ```
+            nullDisplayValue: - Select Schema Name -
+        }
+        layout {
+            sequence: 10
+            region: @main
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/required-floating
+            templateOptions: #DEFAULT#
+            width: 30
+        }
+        validation {
+            valueRequired: true
+        }
+    )
+
+    button cancel (
+        buttonName: Cancel
+        label: Cancel
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: close
+        }
+        appearance {
+            buttonTemplate: @/text
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: definedByDynamicAction
+        }
+    )
+
+    button create (
+        buttonName: Create
+        label: Create Lock
+        layout {
+            sequence: 10
+            region: @buttons
+            slot: create
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            warnOnUnsavedChanges: doNotCheck
+        }
+    )
+
+    dynamicAction cancel-dialog (
+        name: Cancel Dialog
+        execution {
+            sequence: 10
+        }
+        when {
+            event: click
+            selectionType: button
+            button: @cancel
+        }
+
+        action native-dialog-cancel (
+            action: cancelDialog
+            execution {
+                sequence: 10
+                fireOnInit: false
+            }
+        )
+
+    )
+
+    validation check-lock-uniqueness (
+        name: Check Lock Uniqueness
+        execution {
+            sequence: 10
+        }
+        validation {
+            plsqlExpression:
+                ```plsql
+                loki_lock.object_locked_by(
+                  i_schema_name => :P2_SCHEMA_NAME,
+                  i_object_name => case when loki_util.dba_views_granted() then :P2_OBJECT_NAME else :P2_OBJECT_NAME_TEXT_ONLY end,
+                  i_object_type => :P2_OBJECT_TYPE
+                ) is null
+                ```
+            alwaysExecute: true
+        }
+        error {
+            errorMessage: Object is already locked
+        }
+    )
+
+    process close-dialog (
+        name: Close Dialog
+        type: closeDialog
+        settings {
+            showSuccessMessages: false
+        }
+        execution {
+            sequence: 20
+        }
+        advanced {
+            executionMappingIdentifier: 15626688816587105
+        }
+        serverSideCondition {
+            whenButtonPressed: @create
+        }
+    )
+
+    process create-the-lock (
+        name: Create the Lock
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                declare
+                  l_lock loki_locks%rowtype;
+                begin
+                  l_lock.schema_name := :P2_SCHEMA_NAME;
+                  l_lock.object_type := :P2_OBJECT_TYPE;
+                
+                  l_lock.object_name := :P2_OBJECT_NAME_TEXT_ONLY;
+                  if loki_util.dba_views_granted() then
+                    l_lock.object_name := :P2_OBJECT_NAME;
+                  end if;
+                
+                  loki_lock.create_lock(l_lock);
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+        }
+        successMessage {
+            successMessage: Object locked
+        }
+        advanced {
+            executionMappingIdentifier: 15626544151587104
+        }
+        serverSideCondition {
+            whenButtonPressed: @create
+        }
+    )
+
+)
+

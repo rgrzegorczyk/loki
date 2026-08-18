@@ -1,0 +1,145 @@
+page 6 (
+    name: Administration
+    alias: ADMINISTRATION
+    title: &APP_NAME. - Administration
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        authorizationScheme: @administration-rights
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+    }
+
+    region administration (
+        name: Administration
+        type: classicReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select 1 as "ID",
+                       'Manage Schemas' as "LIST_TITLE",
+                       'Manage supported schemas' as "LIST_TEXT",
+                       'fa fa-database' as "ICON_CLASS",
+                       APEX_PAGE.GET_URL(p_page => 'schemas') as "LINK"
+                  from sys.dual
+                union all
+                select 3 as "ID",
+                       'Manage Users' as "LIST_TITLE",
+                       'Add/remove users' as "LIST_TEXT",
+                       'fa fa-user' as "ICON_CLASS",
+                       APEX_PAGE.GET_URL(p_page => 'users') as "LINK"
+                  from sys.dual
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: [
+                #DEFAULT#
+                t-Region--noPadding
+                t-Region--removeHeader js-removeLandmark
+                t-Region--scrollBody
+            ]
+        }
+        componentAppearance {
+            template: @/media-list
+            templateOptions: [
+                #DEFAULT#
+                t-MediaList--stack
+            ]
+        }
+
+        column ICON_CLASS (
+            reportColumnQueryId: 4
+            derivedColumn: N
+            heading {
+                heading: Icon Class
+            }
+            layout {
+                sequence: 40
+            }
+        )
+
+        column ID (
+            reportColumnQueryId: 1
+            derivedColumn: N
+            heading {
+                heading: Id
+                alignment: end
+            }
+            layout {
+                sequence: 10
+                columnAlignment: end
+            }
+        )
+
+        column LINK (
+            reportColumnQueryId: 5
+            derivedColumn: N
+            heading {
+                heading: Link
+            }
+            layout {
+                sequence: 70
+            }
+        )
+
+        column LIST_TEXT (
+            reportColumnQueryId: 3
+            derivedColumn: N
+            heading {
+                heading: List Text
+            }
+            layout {
+                sequence: 60
+            }
+        )
+
+        column LIST_TITLE (
+            reportColumnQueryId: 2
+            derivedColumn: N
+            heading {
+                heading: List Title
+            }
+            layout {
+                sequence: 50
+            }
+        )
+
+    )
+
+    region breadcrumb (
+        name: Breadcrumb
+        type: breadcrumb
+        source {
+            breadcrumb: @breadcrumb
+        }
+        layout {
+            sequence: 10
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/title-bar
+            templateOptions: [
+                #DEFAULT#
+                t-BreadcrumbRegion--useBreadcrumbTitle
+            ]
+        }
+        componentAppearance {
+            breadcrumbTemplate: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+    )
+
+)
+

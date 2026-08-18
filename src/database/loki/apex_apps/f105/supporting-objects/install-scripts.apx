@@ -1,0 +1,189 @@
+installScript "Version 24.1.0: Create Initial User" (
+    execution {
+        sequence: 180
+    }
+    script {
+        contentFile: version-24-1-0-create-initial-user.sql
+    }
+)
+
+installScript "Version 24.1.0: DDL Logs Clear Job" (
+    execution {
+        sequence: 140
+    }
+    script {
+        contentFile: version-24-1-0-ddl-logs-clear-job.sql
+    }
+)
+
+installScript "Version 24.1.0: DDL Logs Table" (
+    execution {
+        sequence: 50
+    }
+    script {
+        contentFile: version-24-1-0-ddl-logs-table.sql
+    }
+)
+
+installScript "Version 24.1.0: Lock Package" (
+    execution {
+        sequence: 130
+    }
+    script {
+        contentFile: version-24-1-0-lock-package.sql
+    }
+)
+
+installScript "Version 24.1.0: Locks DDL Log ID Index" (
+    execution {
+        sequence: 80
+    }
+    script {
+        contentFile: version-24-1-0-locks-ddl-log-id-index.sql
+    }
+)
+
+installScript "Version 24.1.0: Locks Logs Clear Job" (
+    execution {
+        sequence: 150
+    }
+    script {
+        contentFile: version-24-1-0-locks-logs-clear-job.sql
+    }
+)
+
+installScript "Version 24.1.0: Locks Logs DDL Log ID Index" (
+    execution {
+        sequence: 100
+    }
+    script {
+        contentFile: version-24-1-0-locks-logs-ddl-log-id-index.sql
+    }
+)
+
+installScript "Version 24.1.0: Locks Logs Table" (
+    execution {
+        sequence: 70
+    }
+    script {
+        contentFile: version-24-1-0-locks-logs-table.sql
+    }
+)
+
+installScript "Version 24.1.0: Locks Logs User ID Index" (
+    execution {
+        sequence: 110
+    }
+    script {
+        contentFile: version-24-1-0-locks-logs-user-id-index.sql
+    }
+)
+
+installScript "Version 24.1.0: Locks Table" (
+    execution {
+        sequence: 60
+    }
+    script {
+        contentFile: version-24-1-0-locks-table.sql
+    }
+)
+
+installScript "Version 24.1.0: Locks User ID Index" (
+    execution {
+        sequence: 90
+    }
+    script {
+        contentFile: version-24-1-0-locks-user-id-index.sql
+    }
+)
+
+installScript "Version 24.1.0: Object Types Table" (
+    execution {
+        sequence: 40
+    }
+    script {
+        contentFile: version-24-1-0-object-types-table.sql
+    }
+)
+
+installScript "Version 24.1.0: Preinstall" (
+    execution {
+        sequence: 20
+    }
+    script {
+        contentFile: version-24-1-0-preinstall.sql
+    }
+)
+
+installScript "Version 24.1.0: Set Application Settings" (
+    execution {
+        sequence: 170
+    }
+    script {
+        contentFile: version-24-1-0-set-application-settings.sql
+    }
+)
+
+installScript "Version 24.1.0: Set Version" (
+    execution {
+        sequence: 160
+    }
+    script {
+        contentFile: version-24-1-0-set-version.sql
+    }
+)
+
+installScript "Version 24.1.0: Settings Table" (
+    execution {
+        sequence: 10
+    }
+    script {
+        contentFile: version-24-1-0-settings-table.sql
+    }
+)
+
+installScript "Version 24.1.0: Users Table" (
+    execution {
+        sequence: 30
+    }
+    script {
+        contentFile: version-24-1-0-users-table.sql
+    }
+)
+
+installScript "Version 24.1.0: Util Package" (
+    execution {
+        sequence: 120
+    }
+    script {
+        contentFile: version-24-1-0-util-package.sql
+    }
+)
+
+installScript "Version 24.1.1: Lock Package" (
+    execution {
+        sequence: 200
+    }
+    script {
+        contentFile: version-24-1-1-lock-package.sql
+    }
+)
+
+installScript "Version 24.1.1: Set Version" (
+    execution {
+        sequence: 210
+    }
+    script {
+        contentFile: version-24-1-1-set-version.sql
+    }
+)
+
+installScript "Version 24.1.1: Util Package" (
+    execution {
+        sequence: 190
+    }
+    script {
+        contentFile: version-24-1-1-util-package.sql
+    }
+)
+

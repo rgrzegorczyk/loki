@@ -1,0 +1,1 @@
+alter session set plscope_settings = 'identifiers:none';
