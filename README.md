@@ -40,7 +40,9 @@ end;
 
 ### 3. Install LOKI APEX App with Supporting Objects
 
-Run script install.sql (adjust workspace name if needed):
+Run script install.sql (adjust workspace name if needed)
+
+Script should be executed as a user with privileges to install APEX apps in the workspace. E.g. DEMO in my case
 
 ### 4. Configure LOKI
 
