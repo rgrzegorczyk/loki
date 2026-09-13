@@ -1,0 +1,24 @@
+Loki - independently maintained continuation
+
+Original work:
+  Copyright (c) 2021 Oracle
+
+  Originally published by Oracle in the Oracle APEX repository:
+  https://github.com/oracle/apex/tree/24.1/utility-apps/loki
+
+  The Oracle APEX 24.1 version was used as the baseline for this repository.
+  The initial import is recorded in Git commit
+  9d9102425b20b751a6b86409b077879084bc25be.
+
+Independent maintenance and subsequent modifications:
+  Copyright (c) 2026 Rafal Grzegorczyk
+
+The original work and subsequent modifications are distributed under the
+Universal Permissive License, Version 1.0. See LICENSE.txt.
+
+This is an independently maintained project. It is not affiliated with,
+endorsed by, supported by, or an official product of Oracle. Oracle does not
+provide support or warranties for changes made in this repository.
+
+Oracle, Java, MySQL, and NetSuite are registered trademarks of Oracle and/or
+its affiliates. Other names may be trademarks of their respective owners.

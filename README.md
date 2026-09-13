@@ -1,6 +1,11 @@
 Loki
 ==========
 
+> Loki is an independently maintained continuation of an application originally
+> published in the Oracle APEX repository. It is not affiliated with, endorsed
+> by, supported by, or an official product of Oracle. See
+> [NOTICE.txt](NOTICE.txt) for provenance and attribution details.
+
 Overview
 --------
 
