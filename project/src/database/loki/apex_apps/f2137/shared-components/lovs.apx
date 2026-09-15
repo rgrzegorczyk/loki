@@ -1,0 +1,62 @@
+lov loki-ddl-logs-schema-name (
+    name: LOKI_DDL_LOGS.SCHEMA_NAME
+    source {
+        tableName: LOKI_DDL_LOGS
+    }
+    columnMapping {
+        return: DDL_LOG_ID
+        display: SCHEMA_NAME
+        defaultSort: SCHEMA_NAME
+    }
+)
+
+lov loki-users-full-name (
+    name: LOKI_USERS.FULL_NAME
+    source {
+        tableName: LOKI_USERS
+    }
+    columnMapping {
+        return: USER_ID
+        display: FULL_NAME
+        defaultSort: FULL_NAME
+    }
+)
+
+lov timezones (
+    name: TIMEZONES
+    source {
+        type: sqlQuery
+        sqlQuery:
+            ```sql
+            select distinct tzname d,
+                   tzname r
+              from v$timezone_names
+             order by d
+            ```
+    }
+    columnMapping {
+        return: R
+        display: D
+    }
+)
+
+lov yn (
+    name: YN
+    source {
+        location: staticValues
+    }
+
+    entry no (
+        sequence: 2
+        display: No
+        return: N
+    )
+
+    entry yes (
+        sequence: 1
+        display: Yes
+        return: Y
+    )
+
+)
+

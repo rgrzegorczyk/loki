@@ -1,0 +1,210 @@
+list navigation-bar (
+    name: Navigation Bar
+
+    entry app-user (
+        label: &APP_USER.
+        icon {
+            imageIconCssClasses: fa-user
+        }
+        layout {
+            sequence: 50
+        }
+        link {
+            target: {
+                type: url
+                url: #
+            }
+        }
+        userDefinedAttributes {
+            2: has-username
+        }
+    )
+
+    entry help (
+        label: Help
+        icon {
+            imageIconCssClasses: fa-question-circle-o
+            altAttribute: Help
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 10010
+                clearCache: 10010
+            }
+        }
+        userDefinedAttributes {
+            2: icon-only
+        }
+        config {
+            buildOption: @feature-about-page
+        }
+    )
+
+    entry list_item (
+        label: ---
+        layout {
+            sequence: 90
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: separator
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+    entry sign-out (
+        label: Sign Out
+        icon {
+            imageIconCssClasses: fa-sign-out
+        }
+        layout {
+            sequence: 100
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                type: url
+                url: &LOGOUT_URL.
+            }
+        }
+        serverSideCondition {
+            type: userIsAuthenticated
+        }
+    )
+
+    entry user-profile (
+        label: User Profile
+        icon {
+            imageIconCssClasses: fa-user-wrench
+        }
+        layout {
+            sequence: 60
+            parentEntry: @app-user
+        }
+        link {
+            target: {
+                page: 11
+                items: {
+                    P11_USER_ID: &G_USER_ID.
+                }
+            }
+        }
+    )
+
+)
+
+list navigation-menu (
+    name: Navigation Menu
+
+    entry administration (
+        label: Administration
+        icon {
+            imageIconCssClasses: fa-user-wrench
+        }
+        layout {
+            sequence: 30
+        }
+        isCurrent {
+            type: pages
+            pages: 6
+        }
+        link {
+            target: {
+                page: 6
+            }
+        }
+        security {
+            authorizationScheme: @administration-rights
+        }
+    )
+
+    entry ddl-logs (
+        label: DDL Logs
+        icon {
+            imageIconCssClasses: fa-clock-o
+        }
+        layout {
+            sequence: 20
+        }
+        isCurrent {
+            type: pages
+            pages: 3
+        }
+        link {
+            target: {
+                page: 3
+            }
+        }
+    )
+
+    entry locks (
+        label: Locks
+        icon {
+            imageIconCssClasses: fa-lock
+        }
+        layout {
+            sequence: 10
+        }
+        link {
+            target: {
+                page: 1
+            }
+        }
+    )
+
+    entry schemas (
+        label: Schemas
+        layout {
+            sequence: 40
+            parentEntry: @administration
+        }
+        isCurrent {
+            type: pages
+            pages: [
+                7
+                8
+            ]
+        }
+        link {
+            target: {
+                page: 7
+            }
+        }
+        security {
+            authorizationScheme: @administration-rights
+        }
+    )
+
+    entry users (
+        label: Users
+        layout {
+            sequence: 60
+            parentEntry: @administration
+        }
+        isCurrent {
+            type: pages
+            pages: [
+                9
+                10
+            ]
+        }
+        link {
+            target: {
+                page: 9
+            }
+        }
+        security {
+            authorizationScheme: @administration-rights
+        }
+    )
+
+)
+

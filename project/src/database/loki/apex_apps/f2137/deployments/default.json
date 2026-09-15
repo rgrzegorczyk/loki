@@ -1,0 +1,8 @@
+{
+  "app" : {
+    "id" : 2137,
+    "databaseSession" : {
+      "parsingSchema" : "LOKI"
+    }
+  }
+}

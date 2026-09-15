@@ -1,0 +1,27 @@
+authorization administration-rights (
+    name: Administration Rights
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody: return loki_util.is_admin();
+    }
+    error {
+        errorMessage: Insufficient privileges, user is not an Administrator
+    }
+)
+
+authorization basic-user (
+    name: Basic User
+    type: existsSqlQuery
+    settings {
+        sqlQuery:
+            ```sql
+            select 1
+              from loki_users
+             where apex_username = :APP_USER and active_yn = 'Y'
+            ```
+    }
+    advanced {
+        evaluationType: perSession
+    }
+)
+

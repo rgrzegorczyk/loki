@@ -1,0 +1,5 @@
+authentication builder-extension-sign-in (
+    name: Builder Extension Sign-in
+    type: internalAppExtension
+)
+
