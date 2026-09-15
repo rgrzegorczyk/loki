@@ -161,7 +161,8 @@ create or replace package body loki.loki_lock as
                     and o.object_type in ( 'TABLE', 'VIEW', 'MATERIALIZED VIEW' )
                     and ( o.object_type != 'TABLE'
                           or not exists (
-                        select 1
+                        select
+                            1
                         from
                             sys.dba_objects mv
                         where
@@ -692,8 +693,33 @@ create or replace package body loki.loki_lock as
 
     end clear_ddl_log;
 
+    procedure clear_locks (
+        i_retention_hours in pls_integer
+    ) is
+        type t_lock_ids is
+            table of loki_locks.lock_id%type;
+        l_lock_ids t_lock_ids;
+    begin
+        delete from loki_locks
+        where
+            created <= current_timestamp - ( i_retention_hours / 24 )
+        returning lock_id
+        bulk collect into l_lock_ids;
+
+        if l_lock_ids.count > 0 then
+            forall i in 1..l_lock_ids.count
+                update loki_locks_logs
+                set
+                    released = localtimestamp
+                where
+                    lock_id = l_lock_ids(i);
+
+        end if;
+
+    end clear_locks;
+
 end loki_lock;
 /
 
 
--- sqlcl_snapshot {"hash":"b951853c02a5a2cc2f56d7d3fce521c8e7f92400","type":"PACKAGE_BODY","name":"LOKI_LOCK","schemaName":"LOKI","sxml":""}
+-- sqlcl_snapshot {"hash":"7217143b2aee7128fa9e2ec20d2fb0843160b377","type":"PACKAGE_BODY","name":"LOKI_LOCK","schemaName":"LOKI","sxml":""}

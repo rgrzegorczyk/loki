@@ -35,6 +35,10 @@ create or replace package body loki.loki_util as
                 l_settings_json.get_number('ddl_log_retention_months'),
                 3
             );
+            l_settings.locks_retention_hours := coalesce(
+                l_settings_json.get_number('locks_retention_hours'),
+                12
+            );
             l_settings.first_run := coalesce(
                 l_settings_json.get_string('first_run'),
                 c_yes
@@ -59,11 +63,16 @@ create or replace package body loki.loki_util as
             i_message   => 'LOKI: DDL log retention months should be a positive number'
         );
         assert(
+            i_condition => i_settings.locks_retention_hours >= 0,
+            i_message   => 'LOKI: Locks retention hours should be a positive number'
+        );
+        assert(
             i_condition => i_settings.first_run is not null,
             i_message   => 'LOKI: first run should be a varchar2 (Y, N)'
         );
         l_settings_json.put('locks_log_retention_months', i_settings.locks_log_retention_months);
         l_settings_json.put('ddl_log_retention_months', i_settings.ddl_log_retention_months);
+        l_settings_json.put('locks_retention_hours', i_settings.locks_retention_hours);
         l_settings_json.put('first_run', i_settings.first_run);
         l_settings_clob := l_settings_json.to_clob();
         update loki_settings
@@ -164,4 +173,4 @@ end loki_util;
 /
 
 
--- sqlcl_snapshot {"hash":"df435b8eff638845b2c266ea961ce6e2a8cf4cac","type":"PACKAGE_BODY","name":"LOKI_UTIL","schemaName":"LOKI","sxml":""}
+-- sqlcl_snapshot {"hash":"129f591b3dbcf59c224647d5bd74669ce6129f10","type":"PACKAGE_BODY","name":"LOKI_UTIL","schemaName":"LOKI","sxml":""}
