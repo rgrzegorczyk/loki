@@ -37,7 +37,7 @@ create or replace package body loki.loki_util as
             );
             l_settings.locks_retention_hours := coalesce(
                 l_settings_json.get_number('locks_retention_hours'),
-                12
+                2
             );
             l_settings.first_run := coalesce(
                 l_settings_json.get_string('first_run'),

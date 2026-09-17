@@ -652,6 +652,16 @@ create or replace package body loki.loki_lock as
                         object_name = ora_dict_obj_name
                     and schema_name = ora_dict_obj_owner;
 
+            else
+            -- Point the lock to its most recent DDL for retention purposes.
+                update loki_locks
+                set
+                    ddl_log_id = l_ddl_log_id
+                where
+                        schema_name = l_lock_details.owner
+                    and object_name = l_lock_details.object_name
+                    and object_type = l_lock_details.object_type;
+
             end if;
 
             return;
@@ -700,9 +710,20 @@ create or replace package body loki.loki_lock as
             table of loki_locks.lock_id%type;
         l_lock_ids t_lock_ids;
     begin
-        delete from loki_locks
+    -- Use the latest linked DDL, or the lock creation time for manual locks.
+        delete from loki_locks l
         where
-            created <= current_timestamp - ( i_retention_hours / 24 )
+            coalesce(
+                (
+                    select
+                        d.logged
+                    from
+                        loki_ddl_logs d
+                    where
+                        d.ddl_log_id = l.ddl_log_id
+                ),
+                l.created
+            ) <= current_timestamp - numtodsinterval(i_retention_hours, 'HOUR')
         returning lock_id
         bulk collect into l_lock_ids;
 
