@@ -151,24 +151,21 @@ create or replace package body loki.loki_lock as
         -- If COLUMN, object_name will already be the base object name, se we just need
         -- to look it up.
                 select
-                    o.object_type
+                    object_type
                 into l_object_type
                 from
-                    sys.dba_objects o
+                    all_objects
                 where
-                        o.owner = ora_dict_obj_owner
-                    and o.object_name = l_lock_details.object_name
-                    and o.object_type in ( 'TABLE', 'VIEW', 'MATERIALIZED VIEW' )
-                    and ( o.object_type != 'TABLE'
-                          or not exists (
+                        owner = ora_dict_obj_owner
+                    and object_name = l_lock_details.object_name
+                    and ( object_type != 'TABLE'
+                          or object_name not in (
                         select
-                            1
+                            container_name
                         from
-                            sys.dba_objects mv
+                            all_mviews
                         where
-                                mv.owner = o.owner
-                            and mv.object_name = o.object_name
-                            and mv.object_type = 'MATERIALIZED VIEW'
+                            owner = ora_dict_obj_owner
                     ) );
 
                 l_lock_details.object_type := get_loki_object_type(
@@ -743,4 +740,4 @@ end loki_lock;
 /
 
 
--- sqlcl_snapshot {"hash":"7217143b2aee7128fa9e2ec20d2fb0843160b377","type":"PACKAGE_BODY","name":"LOKI_LOCK","schemaName":"LOKI","sxml":""}
+-- sqlcl_snapshot {"hash":"b951853c02a5a2cc2f56d7d3fce521c8e7f92400","type":"PACKAGE_BODY","name":"LOKI_LOCK","schemaName":"LOKI","sxml":""}
