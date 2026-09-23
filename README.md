@@ -52,49 +52,62 @@ Loki uses database or schema triggers to execute locking logic when DDL events o
 Schema triggers use the "on schema" clause ("schema" may be prefixed with a schema name). Here's an example:
 
 ```
-create or replace function hr.loki_resolve_object_type (
-  i_object_name in varchar2
-) return varchar2
+create or replace package hr.loki_resolver
   authid definer
-is
-  l_object_type varchar2(128);
-begin
-  select max(object_type) keep (
-           dense_rank first order by
-             case object_type
-               when 'MATERIALIZED VIEW' then 1
-               when 'VIEW' then 2
-               when 'TABLE' then 3
-             end
-         )
-    into l_object_type
-    from user_objects
-   where object_name = i_object_name
-     and object_type in ('TABLE', 'VIEW', 'MATERIALIZED VIEW');
+as
+  function get_object_type (
+    i_object_name in varchar2
+  ) return varchar2;
 
-  return l_object_type;
-end loki_resolve_object_type;
+  procedure get_index_target (
+    i_index_name  in  varchar2,
+    o_table_owner out varchar2,
+    o_table_type  out varchar2,
+    o_table_name  out varchar2
+  );
+end loki_resolver;
 /
 
-grant execute on hr.loki_resolve_object_type to loki;
+create or replace package body hr.loki_resolver as
 
-create or replace procedure hr.loki_resolve_index_target (
-  i_index_name  in  varchar2,
-  o_table_owner out varchar2,
-  o_table_type  out varchar2,
-  o_table_name  out varchar2
-)
-  authid definer
-is
-begin
-  select table_owner, table_type, table_name
-    into o_table_owner, o_table_type, o_table_name
-    from user_indexes
-   where index_name = i_index_name;
-end loki_resolve_index_target;
+  function get_object_type (
+    i_object_name in varchar2
+  ) return varchar2 is
+    l_object_type varchar2(128);
+  begin
+    select max(object_type) keep (
+             dense_rank first order by
+               case object_type
+                 when 'MATERIALIZED VIEW' then 1
+                 when 'VIEW' then 2
+                 when 'TABLE' then 3
+               end
+           )
+      into l_object_type
+      from user_objects
+     where object_name = i_object_name
+       and object_type in ('TABLE', 'VIEW', 'MATERIALIZED VIEW');
+
+    return l_object_type;
+  end get_object_type;
+
+  procedure get_index_target (
+    i_index_name  in  varchar2,
+    o_table_owner out varchar2,
+    o_table_type  out varchar2,
+    o_table_name  out varchar2
+  ) is
+  begin
+    select table_owner, table_type, table_name
+      into o_table_owner, o_table_type, o_table_name
+      from user_indexes
+     where index_name = i_index_name;
+  end get_index_target;
+
+end loki_resolver;
 /
 
-grant execute on hr.loki_resolve_index_target to loki;
+grant execute on hr.loki_resolver to loki;
 
 create or replace trigger hr.loki_before_ddl_tgr before ddl on hr.schema
 begin
@@ -103,9 +116,9 @@ end loki_before_ddl_tgr;
 ```
   
 
-The resolvers use the application schema's `USER_OBJECTS` and `USER_INDEXES`
+The resolver package uses the application schema's `USER_OBJECTS` and `USER_INDEXES`
 views to identify `COMMENT` targets and the base objects of dropped indexes.
-They are installed once and automatically see new objects; no data dictionary
+It is installed once and automatically sees new objects; no data dictionary
 grant is required. With this trigger, when DDL events occur on the HR schema,
 Loki’s locking logic will execute correctly. Keep in mind that developers may
 disable this trigger, preventing locks from being enforced.

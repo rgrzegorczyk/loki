@@ -20,10 +20,11 @@ application schema may not be visible to LOKI, causing an unhandled
 
 #### Resolution
 
-Each protected application schema provides a definer-rights procedure named
-`LOKI_RESOLVE_INDEX_TARGET`. It reads the local `USER_INDEXES` view and returns
-the base table owner, type, and name. LOKI has only direct `EXECUTE` access to
-the procedure and invokes it for `DROP INDEX`.
+Each protected application schema provides a definer-rights package named
+`LOKI_RESOLVER`. Its `GET_INDEX_TARGET` procedure reads the local
+`USER_INDEXES` view and returns the base table owner, type, and name. LOKI has
+only direct `EXECUTE` access to the package and invokes the procedure for
+`DROP INDEX`.
 
 `ALTER INDEX`, index rename handling, and trigger target resolution are not
 changed by this fix.
@@ -139,11 +140,11 @@ lock lookup.
 
 #### Resolution
 
-Each protected application schema provides a stable definer-rights function
-named `LOKI_RESOLVE_OBJECT_TYPE`. The function resolves `TABLE`, `VIEW`, and
-`MATERIALIZED VIEW` targets through that schema's `USER_OBJECTS` view. LOKI is
-granted only `EXECUTE` on this resolver and calls it when handling `COMMENT`
-DDL.
+Each protected application schema provides a stable definer-rights package
+named `LOKI_RESOLVER`. Its `GET_OBJECT_TYPE` function resolves `TABLE`, `VIEW`,
+and `MATERIALIZED VIEW` targets through that schema's `USER_OBJECTS` view.
+LOKI is granted only `EXECUTE` on this resolver package and calls the function
+when handling `COMMENT` DDL.
 
 This preserves lock creation for comments on previously unlocked objects and
 does not require access to `SYS.DBA_OBJECTS`, grants on individual application

@@ -147,7 +147,7 @@ create or replace package body loki.loki_lock as
             elsif ora_sysevent = 'COMMENT' then
         -- COMMENT does not always expose the base object's type through
         -- ora_dict_obj_type. Each protected schema therefore owns a stable,
-        -- definer-rights LOKI_RESOLVE_OBJECT_TYPE function that can inspect its own
+        -- definer-rights LOKI_RESOLVER package that can inspect its own
         -- USER_OBJECTS without granting LOKI access to DBA_OBJECTS. The schema name
         -- is only known at runtime, so it must be part of dynamic PL/SQL; the object
         -- name remains a bind variable and the schema identifier is validated and
@@ -155,7 +155,7 @@ create or replace package body loki.loki_lock as
                 execute immediate
                     'begin :object_type := '
                     || dbms_assert.enquote_name(ora_dict_obj_owner, false)
-                    || '.loki_resolve_object_type(:object_name); end;'
+                    || '.loki_resolver.get_object_type(:object_name); end;'
                     using out l_object_type, in l_lock_details.object_name;
 
                 if
@@ -164,7 +164,7 @@ create or replace package body loki.loki_lock as
                 then
                     raise_application_error(
                         -20002,
-                        'Loki: LOKI_RESOLVE_OBJECT_TYPE returned an unsupported type for '
+                        'Loki: LOKI_RESOLVER.GET_OBJECT_TYPE returned an unsupported type for '
                         || ora_dict_obj_owner
                         || '.'
                         || l_lock_details.object_name
@@ -225,7 +225,7 @@ create or replace package body loki.loki_lock as
                     execute immediate
                         'begin '
                         || dbms_assert.enquote_name(ora_dict_obj_owner, false)
-                        || '.loki_resolve_index_target('
+                        || '.loki_resolver.get_index_target('
                         || 'i_index_name => :index_name, '
                         || 'o_table_owner => :table_owner, '
                         || 'o_table_type => :table_type, '
