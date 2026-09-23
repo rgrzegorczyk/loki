@@ -1,5 +1,6 @@
 -- Install this package once in every application schema protected by LOKI.
--- AUTHID DEFINER makes USER_OBJECTS and USER_INDEXES describe that application
+-- AUTHID DEFINER makes USER_OBJECTS, USER_INDEXES, and USER_TRIGGERS describe
+-- that application
 -- schema when the central LOKI package invokes these routines. This avoids
 -- granting LOKI access to DBA_* views or to individual application objects.
 create or replace package loki_resolver
@@ -14,6 +15,13 @@ as
         o_table_owner out varchar2,
         o_table_type  out varchar2,
         o_table_name  out varchar2
+    );
+
+    procedure get_trigger_target (
+        i_trigger_name in  varchar2,
+        o_object_owner out varchar2,
+        o_object_type  out varchar2,
+        o_object_name  out varchar2
     );
 end loki_resolver;
 /
@@ -70,6 +78,46 @@ create or replace package body loki_resolver as
         where
             index_name = i_index_name;
     end get_index_target;
+
+    procedure get_trigger_target (
+        i_trigger_name in  varchar2,
+        o_object_owner out varchar2,
+        o_object_type  out varchar2,
+        o_object_name  out varchar2
+    ) is
+        l_table_owner      varchar2(128);
+        l_base_object_type varchar2(128);
+        l_table_name       varchar2(128);
+    begin
+        select
+            table_owner,
+            base_object_type,
+            table_name
+        into
+            l_table_owner,
+            l_base_object_type,
+            l_table_name
+        from
+            user_triggers
+        where
+            trigger_name = i_trigger_name;
+
+        -- DML and INSTEAD OF triggers protect their table or view. Schema and
+        -- database event triggers have no such base object, so protect the
+        -- trigger itself, matching the CREATE TRIGGER path in LOKI_LOCK.
+        if
+            l_base_object_type in ( 'TABLE', 'VIEW' )
+            and l_table_name is not null
+        then
+            o_object_owner := l_table_owner;
+            o_object_type := l_base_object_type;
+            o_object_name := l_table_name;
+        else
+            o_object_owner := user;
+            o_object_type := 'TRIGGER';
+            o_object_name := i_trigger_name;
+        end if;
+    end get_trigger_target;
 
 end loki_resolver;
 /

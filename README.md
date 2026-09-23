@@ -116,8 +116,9 @@ end loki_before_ddl_tgr;
 ```
   
 
-The resolver package uses the application schema's `USER_OBJECTS` and `USER_INDEXES`
-views to identify `COMMENT` targets and the base objects of dropped indexes.
+The resolver package uses the application schema's `USER_OBJECTS`,
+`USER_INDEXES`, and `USER_TRIGGERS` views to identify `COMMENT` targets and
+the base objects of existing indexes and triggers.
 It is installed once and automatically sees new objects; no data dictionary
 grant is required. With this trigger, when DDL events occur on the HR schema,
 Loki’s locking logic will execute correctly. Keep in mind that developers may

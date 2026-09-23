@@ -275,7 +275,9 @@ create or replace package body loki.loki_lock as
 
                     end if;
                 elsif ora_sysevent in ( 'ALTER', 'DROP' ) then
-          -- For ALTER and DROP, use dba_triggers over regexp functions.
+          -- Resolve existing triggers inside their owning application schema.
+          -- ALL_TRIGGERS here would use LOKI's visibility and can omit triggers
+          -- for which LOKI has no direct object privilege.
                     if ora_sysevent = 'ALTER' then
             -- This property will have the object name or the TO name if it's
             -- a rename.
@@ -283,20 +285,19 @@ create or replace package body loki.loki_lock as
                     else
                         l_object_name := ora_dict_obj_name;
                     end if;
-          --
-                    select
-                        table_owner,
-                        base_object_type,
-                        table_name
-                    into
-                        l_base_object_rec.owner,
-                        l_base_object_rec.object_type,
-                        l_base_object_rec.object_name
-                    from
-                        all_triggers
-                    where
-                            owner = ora_dict_obj_owner
-                        and trigger_name = l_object_name;
+                    execute immediate
+                        'begin '
+                        || dbms_assert.enquote_name(ora_dict_obj_owner, false)
+                        || '.loki_resolver.get_trigger_target('
+                        || 'i_trigger_name => :trigger_name, '
+                        || 'o_object_owner => :object_owner, '
+                        || 'o_object_type => :object_type, '
+                        || 'o_object_name => :object_name); end;'
+                        using
+                            in l_object_name,
+                            out l_base_object_rec.owner,
+                            out l_base_object_rec.object_type,
+                            out l_base_object_rec.object_name;
 
                 end if;
 

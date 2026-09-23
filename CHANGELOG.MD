@@ -5,6 +5,55 @@ and reproducible test cases for regressions.
 
 ## Unreleased
 
+### ALTER or DROP TRIGGER fails in a protected application schema
+
+#### Status
+
+Fixed in the source tree. Database installation and verification are pending.
+
+#### Problem
+
+For an existing trigger, LOKI resolves its protected base object through
+`ALL_TRIGGERS` from the definer-rights `LOKI.LOKI_LOCK` package. A trigger
+owned by a protected application schema may not be visible to LOKI, causing an
+unhandled `NO_DATA_FOUND` before lock enforcement.
+
+#### Resolution
+
+The application schema's definer-rights `LOKI_RESOLVER` package now provides
+`GET_TRIGGER_TARGET`, which reads local `USER_TRIGGERS`. DML and INSTEAD OF
+triggers resolve to their table or view. Schema and database event triggers
+resolve to the trigger itself, consistently with the existing `CREATE
+TRIGGER` behavior. LOKI invokes this resolver for `ALTER TRIGGER` and `DROP
+TRIGGER` without requiring dictionary or application-object grants.
+
+Trigger rename handling is not changed by this fix.
+
+#### Regression test
+
+In a protected application schema, create a table and a DML trigger, then
+alter and drop the trigger:
+
+```sql
+create table loki_trigger_fix_test (
+    id number
+);
+
+create or replace trigger loki_trigger_fix_test_bir
+    before insert on loki_trigger_fix_test
+begin
+    null;
+end;
+/
+
+alter trigger loki_trigger_fix_test_bir disable;
+drop trigger loki_trigger_fix_test_bir;
+drop table loki_trigger_fix_test purge;
+```
+
+`ALTER TRIGGER` and `DROP TRIGGER` must complete without an unhandled
+`ORA-01403`/`ORA-04088` error. Normal LOKI lock enforcement still applies.
+
 ### DROP INDEX fails for indexes in a protected application schema
 
 #### Status
