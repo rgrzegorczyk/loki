@@ -52,6 +52,32 @@ Loki uses database or schema triggers to execute locking logic when DDL events o
 Schema triggers use the "on schema" clause ("schema" may be prefixed with a schema name). Here's an example:
 
 ```
+create or replace function hr.loki_resolve_object_type (
+  i_object_name in varchar2
+) return varchar2
+  authid definer
+is
+  l_object_type varchar2(128);
+begin
+  select max(object_type) keep (
+           dense_rank first order by
+             case object_type
+               when 'MATERIALIZED VIEW' then 1
+               when 'VIEW' then 2
+               when 'TABLE' then 3
+             end
+         )
+    into l_object_type
+    from user_objects
+   where object_name = i_object_name
+     and object_type in ('TABLE', 'VIEW', 'MATERIALIZED VIEW');
+
+  return l_object_type;
+end loki_resolve_object_type;
+/
+
+grant execute on hr.loki_resolve_object_type to loki;
+
 create or replace trigger hr.loki_before_ddl_tgr before ddl on hr.schema
 begin
   execute immediate 'begin loki.loki_lock.handle_ddl_event(); end;';
@@ -59,7 +85,12 @@ end loki_before_ddl_tgr;
 ```
   
 
-With this trigger, when DDL events occur on the HR schema, Loki’s locking logic will execute correctly. Keep in mind that developers may disable this trigger, preventing locks from being enforced.
+The resolver uses the application schema's `USER_OBJECTS` view to identify the
+base object for `COMMENT` DDL. It is installed once and automatically sees new
+objects; no maintenance or data dictionary grant is required. With this trigger,
+when DDL events occur on the HR schema, Loki’s locking logic will execute
+correctly. Keep in mind that developers may disable this trigger, preventing
+locks from being enforced.
 
 _Note: The generated trigger code for each schema can be found in the section “Administration” -> “Schemas”._
 
