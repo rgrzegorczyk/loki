@@ -195,15 +195,13 @@ create or replace package body loki.loki_lock as
                     l_base_object_rec.object_name := normalize_name(regexp_substr(i_ddl, l_index_full_re, 1, 1, 'i',
                                                                                   3));
 
-                elsif ora_sysevent in ( 'ALTER', 'DROP' ) then
-          -- For ALTER and DROP, use dba_indexes over regexp functions.
-                    if ora_sysevent = 'ALTER' then
+                elsif ora_sysevent = 'ALTER' then
+          -- Keep the existing ALTER lookup separate from DROP. Rename handling
+          -- requires additional changes because a BEFORE DDL trigger sees the old
+          -- index name; it is intentionally outside the DROP INDEX fix.
             -- This property will have the object name or the TO name if it's
             -- a rename.
-                        l_object_name := l_lock_details.object_name;
-                    else
-                        l_object_name := ora_dict_obj_name;
-                    end if;
+                    l_object_name := l_lock_details.object_name;
 
                     select
                         table_owner,
@@ -218,6 +216,25 @@ create or replace package body loki.loki_lock as
                     where
                             owner = ora_dict_obj_owner
                         and index_name = l_object_name;
+
+                elsif ora_sysevent = 'DROP' then
+          -- ALL_INDEXES is evaluated with the definer-rights LOKI user's
+          -- visibility and may not contain an index from the protected schema.
+          -- Resolve the base object through a definer-rights helper owned by that
+          -- schema, avoiding grants on DBA_INDEXES or application objects.
+                    execute immediate
+                        'begin '
+                        || dbms_assert.enquote_name(ora_dict_obj_owner, false)
+                        || '.loki_resolve_index_target('
+                        || 'i_index_name => :index_name, '
+                        || 'o_table_owner => :table_owner, '
+                        || 'o_table_type => :table_type, '
+                        || 'o_table_name => :table_name); end;'
+                        using
+                            in ora_dict_obj_name,
+                            out l_base_object_rec.owner,
+                            out l_base_object_rec.object_type,
+                            out l_base_object_rec.object_name;
 
                 end if;
 

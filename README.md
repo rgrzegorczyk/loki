@@ -78,6 +78,24 @@ end loki_resolve_object_type;
 
 grant execute on hr.loki_resolve_object_type to loki;
 
+create or replace procedure hr.loki_resolve_index_target (
+  i_index_name  in  varchar2,
+  o_table_owner out varchar2,
+  o_table_type  out varchar2,
+  o_table_name  out varchar2
+)
+  authid definer
+is
+begin
+  select table_owner, table_type, table_name
+    into o_table_owner, o_table_type, o_table_name
+    from user_indexes
+   where index_name = i_index_name;
+end loki_resolve_index_target;
+/
+
+grant execute on hr.loki_resolve_index_target to loki;
+
 create or replace trigger hr.loki_before_ddl_tgr before ddl on hr.schema
 begin
   execute immediate 'begin loki.loki_lock.handle_ddl_event(); end;';
@@ -85,12 +103,12 @@ end loki_before_ddl_tgr;
 ```
   
 
-The resolver uses the application schema's `USER_OBJECTS` view to identify the
-base object for `COMMENT` DDL. It is installed once and automatically sees new
-objects; no maintenance or data dictionary grant is required. With this trigger,
-when DDL events occur on the HR schema, Loki’s locking logic will execute
-correctly. Keep in mind that developers may disable this trigger, preventing
-locks from being enforced.
+The resolvers use the application schema's `USER_OBJECTS` and `USER_INDEXES`
+views to identify `COMMENT` targets and the base objects of dropped indexes.
+They are installed once and automatically see new objects; no data dictionary
+grant is required. With this trigger, when DDL events occur on the HR schema,
+Loki’s locking logic will execute correctly. Keep in mind that developers may
+disable this trigger, preventing locks from being enforced.
 
 _Note: The generated trigger code for each schema can be found in the section “Administration” -> “Schemas”._
 

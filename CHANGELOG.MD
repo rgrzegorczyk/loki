@@ -5,6 +5,29 @@ and reproducible test cases for regressions.
 
 ## Unreleased
 
+### DROP INDEX fails for indexes in a protected application schema
+
+#### Status
+
+Fixed in the source tree. Database installation and verification are pending.
+
+#### Problem
+
+`DROP INDEX` resolves the index's base object through `ALL_INDEXES` from the
+definer-rights `LOKI.LOKI_LOCK` package. An index owned by a protected
+application schema may not be visible to LOKI, causing an unhandled
+`NO_DATA_FOUND` before lock enforcement.
+
+#### Resolution
+
+Each protected application schema provides a definer-rights procedure named
+`LOKI_RESOLVE_INDEX_TARGET`. It reads the local `USER_INDEXES` view and returns
+the base table owner, type, and name. LOKI has only direct `EXECUTE` access to
+the procedure and invokes it for `DROP INDEX`.
+
+`ALTER INDEX`, index rename handling, and trigger target resolution are not
+changed by this fix.
+
 ### COMMENT DDL fails for objects in a protected application schema
 
 #### Status
