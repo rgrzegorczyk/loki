@@ -145,28 +145,31 @@ create or replace package body loki.loki_lock as
             elsif l_lock_details.object_type = 'MATERIALIZED_VIEW_LOG' then
                 l_lock_details.object_type := 'TABLE';
             elsif ora_sysevent = 'COMMENT' then
-        -- For comments, ora_dict_obj_type is likely either TABLE or COLUMN. The value 
-        -- TABLE could actually be a VIEW or MATERIALIZED VIEW so we need to look it up.
-        -- In the case of MVIEWS, the backing table is filtered out to get the right type.
-        -- If COLUMN, object_name will already be the base object name, se we just need
-        -- to look it up.
-                select
-                    object_type
-                into l_object_type
-                from
-                    all_objects
-                where
-                        owner = ora_dict_obj_owner
-                    and object_name = l_lock_details.object_name
-                    and ( object_type != 'TABLE'
-                          or object_name not in (
-                        select
-                            container_name
-                        from
-                            all_mviews
-                        where
-                            owner = ora_dict_obj_owner
-                    ) );
+        -- COMMENT does not always expose the base object's type through
+        -- ora_dict_obj_type. Each protected schema therefore owns a stable,
+        -- definer-rights LOKI_RESOLVE_OBJECT_TYPE function that can inspect its own
+        -- USER_OBJECTS without granting LOKI access to DBA_OBJECTS. The schema name
+        -- is only known at runtime, so it must be part of dynamic PL/SQL; the object
+        -- name remains a bind variable and the schema identifier is validated and
+        -- quoted by DBMS_ASSERT.
+                execute immediate
+                    'begin :object_type := '
+                    || dbms_assert.enquote_name(ora_dict_obj_owner, false)
+                    || '.loki_resolve_object_type(:object_name); end;'
+                    using out l_object_type, in l_lock_details.object_name;
+
+                if
+                    l_object_type is null
+                    or l_object_type not in ( 'TABLE', 'VIEW', 'MATERIALIZED VIEW' )
+                then
+                    raise_application_error(
+                        -20002,
+                        'Loki: LOKI_RESOLVE_OBJECT_TYPE returned an unsupported type for '
+                        || ora_dict_obj_owner
+                        || '.'
+                        || l_lock_details.object_name
+                    );
+                end if;
 
                 l_lock_details.object_type := get_loki_object_type(
                     i_from        => 'DBA_OBJECTS_OBJECT_TYPE',
@@ -618,9 +621,21 @@ create or replace package body loki.loki_lock as
             return;
         end if;
 
-    -- Only the types that Loki has been tested for should participate
-    -- in locking.
-        if not locking_supported(ora_dict_obj_type) then
+    -- Only the types that Loki has been tested for should participate in locking.
+    -- COMMENT ON COLUMN reports COLUMN rather than the base object's type, so let
+    -- supported COMMENT targets reach get_lock_details(), where the application
+    -- schema resolver maps them to TABLE, VIEW, or MATERIALIZED_VIEW.
+        if ora_sysevent = 'COMMENT' then
+            if ora_dict_obj_type not in (
+                'TABLE',
+                'COLUMN',
+                'VIEW',
+                'MATERIALIZED VIEW',
+                'SNAPSHOT'
+            ) then
+                return;
+            end if;
+        elsif not locking_supported(ora_dict_obj_type) then
             return;
         end if;
         l_lock_details := get_lock_details(l_ddl);

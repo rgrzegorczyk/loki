@@ -1,0 +1,1 @@
+Objects that will be created in application schemas
