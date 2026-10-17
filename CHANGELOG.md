@@ -11,6 +11,31 @@ release version and date.
 
 ### Fixed
 
+#### Correct lock handling for comments, indexes, and triggers ([#6](https://github.com/rgrzegorczyk/loki/issues/6))
+
+**Problem:** Loki can fail before it creates or enforces a lock for `COMMENT ON
+TABLE`, `COMMENT ON COLUMN`, `DROP INDEX`, and `ALTER` or `DROP TRIGGER` in a
+protected application schema. The central `LOKI_LOCK` package runs with
+definer's rights, so its `ALL_OBJECTS`, `ALL_INDEXES`, and `ALL_TRIGGERS`
+lookups use the LOKI schema's visibility instead of the protected schema's
+visibility. This can raise `NO_DATA_FOUND` and abort the DDL operation.
+
+**Fix:** Each protected application schema provides one definer-rights
+`LOKI_RESOLVER` package. It resolves objects, index targets, and trigger targets
+through the schema's local `USER_OBJECTS`, `USER_INDEXES`, and `USER_TRIGGERS`
+views. The LOKI schema receives only direct `EXECUTE` access to this package.
+
+- `COMMENT ON TABLE` and `COMMENT ON COLUMN` resolve to the protected
+  table, view, or materialized view.
+- `DROP INDEX` resolves to the index's base table.
+- `ALTER TRIGGER` and `DROP TRIGGER` resolve DML and INSTEAD OF triggers
+  to their base table or view; schema and database event triggers resolve
+  to the trigger itself.
+- The change does not grant access to `DBA_*` views or individual application
+  objects.
+- `ALTER INDEX` and index or trigger rename handling are outside this change.
+- No table structure or Oracle APEX application changes are required.
+
 #### Automatic cleanup of abandoned locks ([#5](https://github.com/rgrzegorczyk/loki/issues/5))
 
 **Problem:** In Loki 24.1.1, locks remained active until a developer or

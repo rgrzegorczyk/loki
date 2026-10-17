@@ -145,28 +145,31 @@ create or replace package body loki.loki_lock as
             elsif l_lock_details.object_type = 'MATERIALIZED_VIEW_LOG' then
                 l_lock_details.object_type := 'TABLE';
             elsif ora_sysevent = 'COMMENT' then
-        -- For comments, ora_dict_obj_type is likely either TABLE or COLUMN. The value 
-        -- TABLE could actually be a VIEW or MATERIALIZED VIEW so we need to look it up.
-        -- In the case of MVIEWS, the backing table is filtered out to get the right type.
-        -- If COLUMN, object_name will already be the base object name, se we just need
-        -- to look it up.
-                select
-                    object_type
-                into l_object_type
-                from
-                    all_objects
-                where
-                        owner = ora_dict_obj_owner
-                    and object_name = l_lock_details.object_name
-                    and ( object_type != 'TABLE'
-                          or object_name not in (
-                        select
-                            container_name
-                        from
-                            all_mviews
-                        where
-                            owner = ora_dict_obj_owner
-                    ) );
+        -- COMMENT does not always expose the base object's type through
+        -- ora_dict_obj_type. Each protected schema therefore owns a stable,
+        -- definer-rights LOKI_RESOLVER package that can inspect its own
+        -- USER_OBJECTS without granting LOKI access to DBA_OBJECTS. The schema name
+        -- is only known at runtime, so it must be part of dynamic PL/SQL; the object
+        -- name remains a bind variable and the schema identifier is validated and
+        -- quoted by DBMS_ASSERT.
+                execute immediate
+                    'begin :object_type := '
+                    || dbms_assert.enquote_name(ora_dict_obj_owner, false)
+                    || '.loki_resolver.get_object_type(:object_name); end;'
+                    using out l_object_type, in l_lock_details.object_name;
+
+                if
+                    l_object_type is null
+                    or l_object_type not in ( 'TABLE', 'VIEW', 'MATERIALIZED VIEW' )
+                then
+                    raise_application_error(
+                        -20002,
+                        'Loki: LOKI_RESOLVER.GET_OBJECT_TYPE returned an unsupported type for '
+                        || ora_dict_obj_owner
+                        || '.'
+                        || l_lock_details.object_name
+                    );
+                end if;
 
                 l_lock_details.object_type := get_loki_object_type(
                     i_from        => 'DBA_OBJECTS_OBJECT_TYPE',
@@ -192,15 +195,13 @@ create or replace package body loki.loki_lock as
                     l_base_object_rec.object_name := normalize_name(regexp_substr(i_ddl, l_index_full_re, 1, 1, 'i',
                                                                                   3));
 
-                elsif ora_sysevent in ( 'ALTER', 'DROP' ) then
-          -- For ALTER and DROP, use dba_indexes over regexp functions.
-                    if ora_sysevent = 'ALTER' then
+                elsif ora_sysevent = 'ALTER' then
+          -- Keep the existing ALTER lookup separate from DROP. Rename handling
+          -- requires additional changes because a BEFORE DDL trigger sees the old
+          -- index name; it is intentionally outside the DROP INDEX fix.
             -- This property will have the object name or the TO name if it's
             -- a rename.
-                        l_object_name := l_lock_details.object_name;
-                    else
-                        l_object_name := ora_dict_obj_name;
-                    end if;
+                    l_object_name := l_lock_details.object_name;
 
                     select
                         table_owner,
@@ -215,6 +216,25 @@ create or replace package body loki.loki_lock as
                     where
                             owner = ora_dict_obj_owner
                         and index_name = l_object_name;
+
+                elsif ora_sysevent = 'DROP' then
+          -- ALL_INDEXES is evaluated with the definer-rights LOKI user's
+          -- visibility and may not contain an index from the protected schema.
+          -- Resolve the base object through a definer-rights helper owned by that
+          -- schema, avoiding grants on DBA_INDEXES or application objects.
+                    execute immediate
+                        'begin '
+                        || dbms_assert.enquote_name(ora_dict_obj_owner, false)
+                        || '.loki_resolver.get_index_target('
+                        || 'i_index_name => :index_name, '
+                        || 'o_table_owner => :table_owner, '
+                        || 'o_table_type => :table_type, '
+                        || 'o_table_name => :table_name); end;'
+                        using
+                            in ora_dict_obj_name,
+                            out l_base_object_rec.owner,
+                            out l_base_object_rec.object_type,
+                            out l_base_object_rec.object_name;
 
                 end if;
 
@@ -255,7 +275,9 @@ create or replace package body loki.loki_lock as
 
                     end if;
                 elsif ora_sysevent in ( 'ALTER', 'DROP' ) then
-          -- For ALTER and DROP, use dba_triggers over regexp functions.
+          -- Resolve existing triggers inside their owning application schema.
+          -- ALL_TRIGGERS here would use LOKI's visibility and can omit triggers
+          -- for which LOKI has no direct object privilege.
                     if ora_sysevent = 'ALTER' then
             -- This property will have the object name or the TO name if it's
             -- a rename.
@@ -263,20 +285,19 @@ create or replace package body loki.loki_lock as
                     else
                         l_object_name := ora_dict_obj_name;
                     end if;
-          --
-                    select
-                        table_owner,
-                        base_object_type,
-                        table_name
-                    into
-                        l_base_object_rec.owner,
-                        l_base_object_rec.object_type,
-                        l_base_object_rec.object_name
-                    from
-                        all_triggers
-                    where
-                            owner = ora_dict_obj_owner
-                        and trigger_name = l_object_name;
+                    execute immediate
+                        'begin '
+                        || dbms_assert.enquote_name(ora_dict_obj_owner, false)
+                        || '.loki_resolver.get_trigger_target('
+                        || 'i_trigger_name => :trigger_name, '
+                        || 'o_object_owner => :object_owner, '
+                        || 'o_object_type => :object_type, '
+                        || 'o_object_name => :object_name); end;'
+                        using
+                            in l_object_name,
+                            out l_base_object_rec.owner,
+                            out l_base_object_rec.object_type,
+                            out l_base_object_rec.object_name;
 
                 end if;
 
@@ -618,9 +639,21 @@ create or replace package body loki.loki_lock as
             return;
         end if;
 
-    -- Only the types that Loki has been tested for should participate
-    -- in locking.
-        if not locking_supported(ora_dict_obj_type) then
+    -- Only the types that Loki has been tested for should participate in locking.
+    -- COMMENT ON COLUMN reports COLUMN rather than the base object's type, so let
+    -- supported COMMENT targets reach get_lock_details(), where the application
+    -- schema resolver maps them to TABLE, VIEW, or MATERIALIZED_VIEW.
+        if ora_sysevent = 'COMMENT' then
+            if ora_dict_obj_type not in (
+                'TABLE',
+                'COLUMN',
+                'VIEW',
+                'MATERIALIZED VIEW',
+                'SNAPSHOT'
+            ) then
+                return;
+            end if;
+        elsif not locking_supported(ora_dict_obj_type) then
             return;
         end if;
         l_lock_details := get_lock_details(l_ddl);
@@ -740,4 +773,4 @@ end loki_lock;
 /
 
 
--- sqlcl_snapshot {"hash":"7217143b2aee7128fa9e2ec20d2fb0843160b377","type":"PACKAGE_BODY","name":"LOKI_LOCK","schemaName":"LOKI","sxml":""}
+-- sqlcl_snapshot {"hash":"b951853c02a5a2cc2f56d7d3fce521c8e7f92400","type":"PACKAGE_BODY","name":"LOKI_LOCK","schemaName":"LOKI","sxml":""}

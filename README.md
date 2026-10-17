@@ -63,6 +63,18 @@ With this trigger, when DDL events occur on the HR schema, Loki’s locking logi
 
 _Note: The generated trigger code for each schema can be found in the section “Administration” -> “Schemas”._
 
+### Protected schema resolver
+
+The standalone database patch requires a small definer-rights package named
+`LOKI_RESOLVER` in every application schema protected by Loki. The resolver
+uses that schema's `USER_OBJECTS`, `USER_INDEXES`, and `USER_TRIGGERS` views so
+that Loki can handle comments, dropped indexes, and altered or dropped triggers
+without broad dictionary or application-object grants.
+
+The central `LOKI` schema needs only a direct `EXECUTE` grant on each resolver.
+See the [protected schema installation instructions](project/src/app_schema/README.md)
+for the required deployment order and regression test.
+
 Database triggers use the "on database" clause. To create a database trigger, the owner must have the "administer database trigger" privilege. Here's an example:
 
 ```
