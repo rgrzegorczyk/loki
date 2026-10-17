@@ -1,11 +1,12 @@
-# Loki database patch for 24.1.1
+# Loki 25.0 database patch
 
-This patch installs the database fixes from
+This patch upgrades the database components of an existing Loki 24.1.1
+installation to Loki 25.0. It installs the fixes from
 [#5](https://github.com/rgrzegorczyk/loki/issues/5) and
-[#6](https://github.com/rgrzegorczyk/loki/issues/6) in an existing Loki 24.1.1
-installation.
+[#6](https://github.com/rgrzegorczyk/loki/issues/6).
 
-It does not modify the Oracle APEX application or any table structure.
+It does not modify the Oracle APEX application or any table structure. The
+APEX application therefore continues to display version 24.1.1.
 
 ## Included changes
 

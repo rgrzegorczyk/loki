@@ -94,8 +94,21 @@ Installation Steps
 3. Drag and drop the application .sql file and click Next
 4. Leave the defaults as they are, then continue through the remaining steps in the wizard to finish installing the application
 
-Updating an existing Loki 24.1.1 installation
----------------------------------------------
+Guides and articles
+-------------------
 
-To install the current database fixes without replacing or modifying the APEX
-application, follow the [standalone database patch instructions](database-patch/README.md).
+For an introduction to Loki and a detailed installation walkthrough, see:
+
+* Introduction: [Who Changed My Code? No More Code Conflicts in Shared Oracle DB DEV Environments \[Loki\]](https://rafal.hashnode.dev/who-changed-my-code-no-more-code-conflicts-in-shared-oracle-db-dev-environments-loki)
+* Installation and configuration: [Loki - Installation and configuration. No more code conflicts in the shared Oracle DEV Database.](https://rafal.hashnode.dev/loki-installation-and-configuration-no-more-code-conflicts-in-the-shared-oracle-dev-database)
+
+Upgrading Loki 24.1.1 to Loki 25.0
+----------------------------------
+
+Loki 25.0 is a database-only release. It updates the database components of an
+existing Loki 24.1.1 installation without replacing or modifying the Oracle
+APEX application. The APEX application therefore continues to display version
+24.1.1.
+
+To install the Loki 25.0 database fixes, follow the
+[standalone database patch instructions](database-patch/README.md).

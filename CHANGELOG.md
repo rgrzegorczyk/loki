@@ -9,6 +9,8 @@ release version and date.
 
 ## [Unreleased]
 
+## [25.0] - 2026-10-17
+
 ### Added
 
 #### Database-only upgrade package for Loki 24.1.1
