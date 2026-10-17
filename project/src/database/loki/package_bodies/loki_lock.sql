@@ -649,6 +649,16 @@ create or replace package body loki.loki_lock as
                         object_name = ora_dict_obj_name
                     and schema_name = ora_dict_obj_owner;
 
+            else
+            -- Point the lock to its most recent DDL for retention purposes.
+                update loki_locks
+                set
+                    ddl_log_id = l_ddl_log_id
+                where
+                        schema_name = l_lock_details.owner
+                    and object_name = l_lock_details.object_name
+                    and object_type = l_lock_details.object_type;
+
             end if;
 
             return;
@@ -690,8 +700,44 @@ create or replace package body loki.loki_lock as
 
     end clear_ddl_log;
 
+    procedure clear_locks (
+        i_retention_hours in pls_integer
+    ) is
+        type t_lock_ids is
+            table of loki_locks.lock_id%type;
+        l_lock_ids t_lock_ids;
+    begin
+    -- Use the latest linked DDL, or the lock creation time for manual locks.
+        delete from loki_locks l
+        where
+            coalesce(
+                (
+                    select
+                        d.logged
+                    from
+                        loki_ddl_logs d
+                    where
+                        d.ddl_log_id = l.ddl_log_id
+                ),
+                l.created
+            ) <= current_timestamp - numtodsinterval(i_retention_hours, 'HOUR')
+        returning lock_id
+        bulk collect into l_lock_ids;
+
+        if l_lock_ids.count > 0 then
+            forall i in 1..l_lock_ids.count
+                update loki_locks_logs
+                set
+                    released = localtimestamp
+                where
+                    lock_id = l_lock_ids(i);
+
+        end if;
+
+    end clear_locks;
+
 end loki_lock;
 /
 
 
--- sqlcl_snapshot {"hash":"b951853c02a5a2cc2f56d7d3fce521c8e7f92400","type":"PACKAGE_BODY","name":"LOKI_LOCK","schemaName":"LOKI","sxml":""}
+-- sqlcl_snapshot {"hash":"7217143b2aee7128fa9e2ec20d2fb0843160b377","type":"PACKAGE_BODY","name":"LOKI_LOCK","schemaName":"LOKI","sxml":""}

@@ -37,15 +37,19 @@ create or replace package loki.loki_lock as
     procedure handle_ddl_event;
 
     procedure clear_locks_log (
-        i_log_retention_months pls_integer
+        i_log_retention_months in pls_integer
     );
 
     procedure clear_ddl_log (
-        i_log_retention_months pls_integer
+        i_log_retention_months in pls_integer
+    );
+
+    procedure clear_locks (
+        i_retention_hours in pls_integer
     );
 
 end loki_lock;
 /
 
 
--- sqlcl_snapshot {"hash":"765890bbeda628aa40f322598f9867b0c850ee43","type":"PACKAGE_SPEC","name":"LOKI_LOCK","schemaName":"LOKI","sxml":""}
+-- sqlcl_snapshot {"hash":"0669fe51e19d662a535345617f9854b792adfd56","type":"PACKAGE_SPEC","name":"LOKI_LOCK","schemaName":"LOKI","sxml":""}
