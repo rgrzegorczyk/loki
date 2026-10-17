@@ -89,6 +89,10 @@ This trigger works for multiple schemas and cannot be disabled without access to
 
 Installation Steps
 ------------------------------------
+
+For concise instructions covering both an existing Loki installation and a
+new installation, see the [Loki 25.0 quick start](QUICKSTART.md).
+
 1. Download the .zip file in this directory
 2. Navigate to App Builder -> Import
 3. Drag and drop the application .sql file and click Next

@@ -9,6 +9,11 @@ release version and date.
 
 ## [Unreleased]
 
+### Added
+
+- A two-path quick-start guide for upgrading an existing Loki 24.1.1
+  installation or setting up Loki for the first time.
+
 ## [25.0] - 2026-10-17
 
 ### Added
