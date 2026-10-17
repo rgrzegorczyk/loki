@@ -72,8 +72,8 @@ that Loki can handle comments, dropped indexes, and altered or dropped triggers
 without broad dictionary or application-object grants.
 
 The central `LOKI` schema needs only a direct `EXECUTE` grant on each resolver.
-See the [protected schema installation instructions](project/src/app_schema/README.md)
-for the required deployment order and regression test.
+See the [database patch installation instructions](database-patch/README.md) for
+the complete deployment order and verification steps.
 
 Database triggers use the "on database" clause. To create a database trigger, the owner must have the "administer database trigger" privilege. Here's an example:
 
@@ -93,3 +93,9 @@ Installation Steps
 2. Navigate to App Builder -> Import
 3. Drag and drop the application .sql file and click Next
 4. Leave the defaults as they are, then continue through the remaining steps in the wizard to finish installing the application
+
+Updating an existing Loki 24.1.1 installation
+---------------------------------------------
+
+To install the current database fixes without replacing or modifying the APEX
+application, follow the [standalone database patch instructions](database-patch/README.md).

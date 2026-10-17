@@ -9,6 +9,16 @@ release version and date.
 
 ## [Unreleased]
 
+### Added
+
+#### Database-only upgrade package for Loki 24.1.1
+
+Added an ordered SQLcl/SQL*Plus installation path for the fixes from issues #5
+and #6. It includes a central-schema precheck, per-protected-schema resolver
+installation, central package and job installation, post-install verification,
+and rollback guidance. The upgrade does not import or modify the Oracle APEX
+application.
+
 ### Fixed
 
 #### Correct lock handling for comments, indexes, and triggers ([#6](https://github.com/rgrzegorczyk/loki/issues/6))

@@ -1,5 +1,9 @@
 # Protected application schema objects
 
+For an upgrade of an existing Loki 24.1.1 installation, follow the complete
+[database patch instructions](../../../database-patch/README.md). This file
+documents the resolver object itself and its issue #6 deployment details.
+
 `LOKI_RESOLVER` is required in every application schema protected by the
 database patch. It lets the central `LOKI.LOKI_LOCK` package resolve comment,
 index, and trigger targets through the protected schema's local `USER_*` views
@@ -97,7 +101,7 @@ alter trigger loki_resolver_test_bir disable;
 alter trigger loki_resolver_test_bir enable;
 
 drop trigger loki_resolver_test_bir;
-drop table loki_resolver_test purge;
+drop table loki_resolver_test;
 ```
 
 All statements must complete without an unhandled `ORA-01403` or `ORA-04088`.
