@@ -31,6 +31,29 @@ create or replace package body loki.loki_lock as
             return false;
     end locking_supported;
 
+    function lock_excluded (
+        i_schema_name in loki_locks.schema_name%type,
+        i_object_type in loki_locks.object_type%type,
+        i_object_name in loki_locks.object_name%type
+    ) return boolean is
+        l_exists pls_integer;
+    begin
+        select
+            1
+        into l_exists
+        from
+            loki_lock_exclusions
+        where
+                schema_name = i_schema_name
+            and object_type = i_object_type
+            and object_name = i_object_name;
+
+        return true;
+    exception
+        when no_data_found then
+            return false;
+    end lock_excluded;
+
     function get_loki_object_type (
         i_from        in varchar2,
         i_object_type in varchar2
@@ -395,6 +418,21 @@ create or replace package body loki.loki_lock as
             i_message   => 'Loki: Object type is not provided'
         );
 
+        loki_util.assert(
+            i_condition => not lock_excluded(
+                i_schema_name => io_lock.schema_name,
+                i_object_type => io_lock.object_type,
+                i_object_name => io_lock.object_name
+            ),
+            i_message   => 'Loki: '
+                         || io_lock.schema_name
+                         || '.'
+                         || io_lock.object_name
+                         || ' ('
+                         || io_lock.object_type
+                         || ') is excluded from locking'
+        );
+
         io_lock.user_id := coalesce(io_lock.user_id,
                                     loki_util.get_current_user().user_id);
 
@@ -657,6 +695,17 @@ create or replace package body loki.loki_lock as
             return;
         end if;
         l_lock_details := get_lock_details(l_ddl);
+
+    -- Keep the DDL history, but do not enforce or create a lock for an excluded
+    -- lock target. The check happens after escalation so an excluded table or
+    -- view also covers comments, indexes, and triggers resolved to that object.
+        if lock_excluded(
+            i_schema_name => l_lock_details.owner,
+            i_object_type => l_lock_details.object_type,
+            i_object_name => l_lock_details.object_name
+        ) then
+            return;
+        end if;
 
     -- Check whether the ddl executed was as a result of a drop table, leading to objects in the recycle bin.
     -- If this is the case then exit.

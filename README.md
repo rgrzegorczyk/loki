@@ -44,6 +44,39 @@ Loki leverages Oracle Database’s system/DDL triggers to function. These trigge
 
 _Note: There's a base/dependent object type relationship between certain object types in the database. Think of it like this: when you drop a base object the dependents go with it. In the case of a table (base), any triggers, indexes, ref constraints, comments, etc. (dependents) all go with it. Loki escalates locks on dependent objects to the base object to better protect what developers are changing._
 
+Object exclusions
+-----------------
+
+Individual lock targets can be excluded by adding them to
+`LOKI.LOKI_LOCK_EXCLUSIONS`. For example:
+
+```sql
+insert into loki.loki_lock_exclusions (
+    schema_name,
+    object_type,
+    object_name,
+    reason
+) values (
+    'DEMO',
+    'TABLE',
+    'TEMP_DATA',
+    'Table generated automatically'
+);
+
+commit;
+```
+
+Exclusions use the resolved Loki lock target. Excluding a table or view also
+excludes comments, indexes, and triggers that Loki escalates to that base
+object. DDL statements for excluded targets remain in Loki's DDL history, but
+Loki neither enforces nor creates locks for them. Manual lock creation is also
+rejected.
+
+Use the names exactly as Oracle reports them. Regular unquoted identifiers are
+normally uppercase. Release any existing lock before adding its target to the
+exclusion table; otherwise the old lock remains visible even though subsequent
+DDL is no longer blocked by it.
+
 Trigger Options
 ---------------
 

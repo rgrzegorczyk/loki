@@ -13,6 +13,11 @@ release version and date.
 
 - A two-path quick-start guide for upgrading an existing Loki 24.1.1
   installation or setting up Loki for the first time.
+- Per-object lock exclusions stored in `LOKI_LOCK_EXCLUSIONS`. Excluded lock
+  targets remain visible in the DDL history but are ignored by automatic lock
+  enforcement and cannot be locked manually. Exclusions are evaluated after
+  dependent objects are resolved, so excluding a table or view also covers
+  comments, indexes, and triggers that Loki escalates to that base object.
 
 ## [25.0] - 2026-10-17
 
